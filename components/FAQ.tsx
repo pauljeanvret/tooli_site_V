@@ -45,7 +45,7 @@ export const FAQ: React.FC = () => {
           {items.map((item, idx) => (
             <ScrollReveal key={idx} delay={idx * 0.08}>
               <motion.div
-                className="border border-toolia-border-subtle rounded-card overflow-hidden"
+                className="rounded-card overflow-hidden bg-toolia-card"
                 layout
               >
                 <button
@@ -71,7 +71,7 @@ export const FAQ: React.FC = () => {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className="px-6 py-4 bg-toolia-card-hover/50 border-t border-toolia-border-subtle">
+                      <div className="px-6 py-4 bg-toolia-card-hover/50">
                         <p className="text-toolia-text-secondary text-sm leading-relaxed">
                           {item.answer}
                         </p>
