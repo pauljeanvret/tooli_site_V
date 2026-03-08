@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary colors from logo */
+  --color-primary: #1F2A4D;
+  --color-primary-light: #3A4A7F;
+  --color-primary-dark: #151E38;
+  
+  /* Gradient stops */
+  --color-gradient-dark: #16203F;
+  --color-gradient-light: #2F3D6B;
+  
+  /* Backgrounds */
+  --bg-main: #0D1117;
+  --bg-secondary: #161D2D;
+  --bg-section: #1A2238;
+  
+  /* Surfaces */
+  --card-bg: #1A2238;
+  --card-hover: #202E42;
+  
+  /* Borders */
+  --border-subtle: #2A3650;
+  --border: #384A66;
+  
+  /* Text */
+  --text-main: #F0F2F5;
+  --text-secondary: #8892A4;
+  --text-muted: #5A6B7F;
+  
+  /* Status */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-toolia-bg-main text-toolia-text font-sans antialiased;
+  line-height: 1.6;
+  color: #F0F2F5;
+}
+
+/* Custom focus styles */
+:focus-visible {
+  outline: 2px solid #1F2A4D;
+  outline-offset: 2px;
+}
+
+/* Smooth scroll for anchors */
+@supports (scroll-behavior: smooth) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Heading styles */
+h1 {
+  @apply text-h1-desktop md:text-h1-mobile font-bold tracking-tight-h1 leading-tight;
+  color: #F0F2F5;
+}
+
+h2 {
+  @apply text-h2-desktop md:text-h2-mobile font-bold tracking-tight-h2 leading-tight;
+  color: #F0F2F5;
+}
+
+h3 {
+  @apply text-xl font-semibold;
+  color: #F0F2F5;
+}
+
+/* Body text */
+p {
+  @apply text-base md:text-lg leading-relaxed;
+  color: #8892A4;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #161D2D;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(31, 42, 77, 0.5);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(31, 42, 77, 0.7);
+}
+
+/* Selection */
+::selection {
+  background-color: #1F2A4D;
+  color: #F0F2F5;
+}
+
+/* RevealSection styles: smooth, non-intrusive appearances */
+.reveal-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.reveal-container {
+  position: relative;
+}
+
+.reveal-content {
+  transform: translateY(24px) scale(0.995);
+  opacity: 0;
+  filter: blur(8px);
+  transition: transform 0.7s cubic-bezier(.16,1,.3,1), opacity 0.7s cubic-bezier(.16,1,.3,1), filter 0.6s ease;
+  will-change: transform, opacity, filter;
+}
+
+.reveal-visible .reveal-content {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* micro-stagger for direct children (up to 8) */
+.reveal-content > * {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal-visible .reveal-content > *:nth-child(1) { transition-delay: 0.06s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(2) { transition-delay: 0.12s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(3) { transition-delay: 0.18s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(4) { transition-delay: 0.24s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(5) { transition-delay: 0.30s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(6) { transition-delay: 0.36s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(7) { transition-delay: 0.42s; opacity: 1; transform: translateY(0);} 
+.reveal-visible .reveal-content > *:nth-child(8) { transition-delay: 0.48s; opacity: 1; transform: translateY(0);} 
+
+/* Reduce intensity on small screens */
+@media (max-width: 640px) {
+  .reveal-content { transform: translateY(12px) scale(0.998); }
+}
