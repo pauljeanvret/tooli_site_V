@@ -226,7 +226,7 @@ export const copy = {
         { value: '100+', label: '100+' },
       ],
       messageLabel: 'Message (optionnel)',
-      messagePlaceholder: 'Dites-en plus sur voter projet...',
+      messagePlaceholder: 'Dites-en plus sur votre projet...',
       checkboxLabel: 'J\'accepte d\'être recontacté',
       submitBtn: 'Lancer l\'automatisation',
       loadingBtn: 'Envoi…',
