@@ -16,11 +16,11 @@ const iconMap = {
 
 export const Values: React.FC = () => {
   return (
-    <Section id="values" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/40">
+    <Section id="product" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/40">
       <div className="flex flex-col gap-16">
         {/* Title */}
         <ScrollReveal>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center max-w-3xl mx-auto">
             {copy.values.title}
           </h2>
         </ScrollReveal>

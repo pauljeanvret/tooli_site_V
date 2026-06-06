@@ -9,60 +9,53 @@ import { ScrollReveal } from './ScrollReveal'
 export const Behind: React.FC = () => {
   return (
     <Section id="behind" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/40">
-      <div className="flex flex-col gap-12 max-w-3xl mx-auto">
-        {/* Title */}
+      <div className="mx-auto flex max-w-4xl flex-col gap-12">
         <ScrollReveal>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-toolia-text">
+          <h2 className="text-2xl font-bold text-toolia-text md:text-3xl lg:text-4xl">
             Derrière Toolia
           </h2>
         </ScrollReveal>
 
-        {/* Content */}
-        <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">
-          {/* Profile Image */}
+        <div className="flex flex-col items-start gap-8 md:flex-row md:gap-12">
           <ScrollReveal className="flex-shrink-0">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
-              className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-toolia-border-subtle shadow-lg"
+              className="h-32 w-32 overflow-hidden rounded-full border-2 border-toolia-border-subtle shadow-lg md:h-40 md:w-40"
             >
               <Image
                 src="/profile/paul.jpg"
                 alt="Paul, fondateur de Toolia"
                 width={160}
                 height={160}
-                className="w-full h-full object-cover object-center"
+                className="h-full w-full object-cover object-center"
                 priority
               />
             </motion.div>
           </ScrollReveal>
 
-          {/* Text Content */}
           <ScrollReveal className="flex-1">
             <div className="space-y-6">
-              <div>
-                <p className="text-toolia-text leading-relaxed">
-                  Toolia a été créé par <span className="font-semibold">Paul</span>, passionné d'automatisation et d'IA appliquée au business.
-                </p>
-              </div>
+              <p className="leading-relaxed text-toolia-text">
+                Toolia a été créé par <span className="font-semibold">Paul</span>, avec une idée simple :
+                rendre l’automatisation Gmail utile, lisible et contrôlable.
+              </p>
 
-              <div>
-                <p className="text-toolia-text leading-relaxed">
-                  L'objectif est simple : aider les entrepreneurs et dirigeants à <span className="font-semibold">gagner du temps</span>, sans perdre le contrôle de leur boîte mail.
-                </p>
-              </div>
+              <p className="leading-relaxed text-toolia-text">
+                Le produit aide les professionnels à traiter plus vite les emails répétitifs, sans confier
+                aveuglément l’envoi de leurs réponses à une IA.
+              </p>
 
-              <div>
-                <p className="text-toolia-text leading-relaxed">
-                  Chaque client est accompagné personnellement, avec une configuration adaptée à ses besoins réels, pas une solution générique.
-                </p>
-              </div>
+              <p className="leading-relaxed text-toolia-text">
+                La priorité de Toolia : vous faire gagner du temps tout en gardant Gmail comme espace de travail
+                principal et la validation finale entre vos mains.
+              </p>
 
-              <div className="pt-4 border-t border-toolia-border-subtle">
-                <p className="text-toolia-text-secondary text-sm italic leading-relaxed">
-                  « Toolia, ce n'est pas un outil de plus. C'est un partenaire pour booster votre efficacité. »
+              <div className="border-t border-toolia-border-subtle pt-4">
+                <p className="text-sm italic leading-relaxed text-toolia-text-secondary">
+                  « Moins d’opérations répétitives, plus de contrôle sur ce qui compte vraiment. »
                 </p>
               </div>
             </div>

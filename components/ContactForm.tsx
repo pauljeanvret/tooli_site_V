@@ -6,7 +6,6 @@ import { Check } from 'lucide-react'
 import { Button } from './Button'
 import { Card } from './Card'
 import { Input } from './Input'
-import { Select } from './Select'
 import { Textarea } from './Textarea'
 import { Section } from './Section'
 import { ScrollReveal } from './ScrollReveal'
@@ -15,7 +14,7 @@ import { copy } from '@/lib/copy'
 interface FormData {
   name: string
   email: string
-  volume: string
+  subject: string
   message: string
   consent: boolean
 }
@@ -28,7 +27,7 @@ export const ContactForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
-    volume: '<20',
+    subject: '',
     message: '',
     consent: false,
   })
@@ -42,15 +41,23 @@ export const ContactForm: React.FC = () => {
     const newErrors: FormErrors = {}
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Le nom est requis'
+      newErrors.name = 'Le nom est requis.'
     }
 
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Veuillez entrer un email valide'
+      newErrors.email = 'Veuillez entrer un email valide.'
+    }
+
+    if (!formData.subject.trim()) {
+      newErrors.subject = 'Le sujet est requis.'
+    }
+
+    if (!formData.message.trim()) {
+      newErrors.message = 'Le message est requis.'
     }
 
     if (!formData.consent) {
-      newErrors.consent = 'Vous devez accepter d\'être recontacté'
+      newErrors.consent = 'Vous devez accepter d’être recontacté.'
     }
 
     return newErrors
@@ -80,14 +87,14 @@ export const ContactForm: React.FC = () => {
       })
 
       if (!response.ok) {
-        throw new Error('Erreur lors de l\'envoi')
+        throw new Error('Erreur lors de l’envoi')
       }
 
       setSuccessMessage(copy.contact.form.successMessage)
       setFormData({
         name: '',
         email: '',
-        volume: '<20',
+        subject: '',
         message: '',
         consent: false,
       })
@@ -96,7 +103,7 @@ export const ContactForm: React.FC = () => {
       setTimeout(() => {
         setSuccessMessage('')
       }, 5000)
-    } catch (error) {
+    } catch {
       setErrorMessage(copy.contact.form.errorMessage)
     } finally {
       setIsLoading(false)
@@ -105,20 +112,18 @@ export const ContactForm: React.FC = () => {
 
   return (
     <Section id="contact" className="bg-gradient-to-b from-toolia-bg-secondary/55 via-toolia-bg-main to-toolia-bg-secondary/80">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Left - Benefits */}
+      <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[0.86fr_1.14fr]">
         <ScrollReveal>
-          <div className="flex flex-col gap-8">
+          <div className="flex max-w-xl flex-col gap-8">
             <div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text mb-4">
+              <h2 className="mb-4 text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
                 {copy.contact.title}
               </h2>
-              <p className="text-lg text-toolia-text-secondary">
+              <p className="text-lg leading-8 text-toolia-text-secondary">
                 {copy.contact.subtitle}
               </p>
             </div>
 
-            {/* Benefits Checklist */}
             <div className="space-y-3">
               {copy.contact.benefits.map((benefit, idx) => (
                 <motion.div
@@ -129,7 +134,7 @@ export const ContactForm: React.FC = () => {
                   transition={{ duration: 0.3, delay: idx * 0.1 }}
                   viewport={{ once: true }}
                 >
-                  <div className="w-6 h-6 rounded-full bg-toolia-success flex items-center justify-center flex-shrink-0">
+                  <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-toolia-success">
                     <Check size={16} className="text-white" />
                   </div>
                   <span className="text-toolia-text-secondary">{benefit}</span>
@@ -139,86 +144,72 @@ export const ContactForm: React.FC = () => {
           </div>
         </ScrollReveal>
 
-        {/* Right - Form */}
         <ScrollReveal>
           <Card className="flex flex-col gap-6">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              {/* Name */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label={copy.contact.form.nameLabel}
+                  placeholder={copy.contact.form.namePlaceholder}
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  error={errors.name}
+                />
+
+                <Input
+                  label={copy.contact.form.emailLabel}
+                  placeholder={copy.contact.form.emailPlaceholder}
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  error={errors.email}
+                />
+              </div>
+
               <Input
-                label={copy.contact.form.nameLabel}
-                placeholder={copy.contact.form.namePlaceholder}
+                label={copy.contact.form.subjectLabel}
+                placeholder={copy.contact.form.subjectPlaceholder}
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                error={errors.name}
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                error={errors.subject}
               />
 
-              {/* Email */}
-              <Input
-                label={copy.contact.form.emailLabel}
-                placeholder={copy.contact.form.emailPlaceholder}
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                error={errors.email}
-              />
-
-              {/* Volume */}
-              <Select
-                label={copy.contact.form.volumeLabel}
-                value={formData.volume}
-                onChange={(e) => setFormData({ ...formData, volume: e.target.value })}
-                options={copy.contact.form.volumeOptions}
-              />
-
-              {/* Message */}
               <Textarea
                 label={copy.contact.form.messageLabel}
                 placeholder={copy.contact.form.messagePlaceholder}
-                rows={4}
+                rows={6}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                error={errors.message}
               />
 
-              {/* Consent Checkbox */}
-              <label className="flex items-start gap-3 cursor-pointer">
+              <label className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
                   checked={formData.consent}
                   onChange={(e) => setFormData({ ...formData, consent: e.target.checked })}
-                  className="w-4 h-4 mt-1 rounded border border-toolia-border-subtle accent-toolia-primary cursor-pointer"
+                  className="mt-1 h-4 w-4 cursor-pointer rounded border border-toolia-border-subtle accent-toolia-primary"
                 />
                 <span className="text-sm text-toolia-text-secondary">
                   {copy.contact.form.checkboxLabel}
                 </span>
               </label>
-              {errors.consent && (
-                <p className="text-xs text-toolia-danger">{errors.consent}</p>
-              )}
+              {errors.consent && <p className="text-xs text-toolia-danger">{errors.consent}</p>}
 
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                isLoading={isLoading}
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading
-                  ? copy.contact.form.loadingBtn
-                  : copy.contact.form.submitBtn}
+              <Button type="submit" variant="primary" size="lg" isLoading={isLoading} disabled={isLoading} className="w-full">
+                {isLoading ? copy.contact.form.loadingBtn : copy.contact.form.submitBtn}
               </Button>
             </form>
 
-            {/* Success Message */}
             <AnimatePresence>
               {successMessage && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-4 bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.3)] rounded-card text-sm text-toolia-success flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-card border border-[rgba(34,197,94,0.3)] bg-[rgba(34,197,94,0.1)] p-4 text-sm text-toolia-success"
                 >
                   <Check size={18} />
                   {successMessage}
@@ -226,14 +217,13 @@ export const ContactForm: React.FC = () => {
               )}
             </AnimatePresence>
 
-            {/* Error Message */}
             <AnimatePresence>
               {errorMessage && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-card text-sm text-toolia-danger"
+                  className="rounded-card border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.1)] p-4 text-sm text-toolia-danger"
                 >
                   {errorMessage}
                 </motion.div>

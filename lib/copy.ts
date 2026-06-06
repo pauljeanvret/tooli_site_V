@@ -1,6 +1,5 @@
-// Centralized copy for the entire site
+// Centralized copy for the public site.
 export const copy = {
-  // Navbar
   navbar: {
     logo: 'Toolia',
     nav: [
@@ -10,72 +9,71 @@ export const copy = {
       { label: 'FAQ', href: '#faq' },
       { label: 'Contact', href: '#contact' },
     ],
-    cta: 'Automatiser ma boîte mail',
+    cta: 'Automatiser ma boîte Gmail',
   },
 
-  // Hero
   hero: {
-    badge: 'IA Gmail • Gain de temps',
     title: 'Votre boîte mail se gère toute seule.',
-    subtitle: 'Toolia trie, priorise et prépare des réponses. Vous validez. C\'est tout.',
+    subtitle:
+      'Toolia trie, priorise et prépare vos réponses dans Gmail. Vous gardez la main, Toolia s’occupe du répétitif.',
     proofs: [
-      'Mise en place: 24–48h',
+      'Configuration en quelques minutes',
+      'Brouillons à valider',
       'Contrôle total',
-      'Confidentiel',
     ],
-    cta1: 'Automatiser ma boîte mail',
+    cta1: 'Automatiser ma boîte Gmail',
     cta2: 'Voir comment ça marche',
-    subCta: 'Réponse sous 24h • Sans engagement',
+    subCta: 'Sans engagement • Vous gardez le contrôle',
     mockupTitle: 'Inbox',
     mockupEmails: [
-      { from: 'Sarah Martin', subject: 'Présentation SAAS', tag: 'Urgent' },
+      { from: 'Sarah Martin', subject: 'Présentation SaaS', tag: 'Urgent' },
       { from: 'Jean Dupont', subject: 'Contrat à signer', tag: 'À traiter' },
-      { from: 'Newsletter', subject: 'Votre digeste hebdo', tag: 'À archiver' },
+      { from: 'Newsletter', subject: 'Votre digest hebdo', tag: 'À archiver' },
     ],
     draftReady: 'Brouillon prêt',
-    timeSaved: 'Temps économisé aujourd\'hui: 42 min',
+    timeSaved: 'Temps économisé aujourd’hui : 42 min',
   },
 
-  // Values
   values: {
-    title: 'Conçu pour vous faire gagner du temps, sans perdre le contrôle.',
+    title: 'Conçu pour vous faire gagner du temps sans perdre le contrôle.',
     items: [
       {
-        title: 'Gain de temps',
-        description: 'Tri + priorités + réponses préparées.',
+        title: 'Tri automatique',
+        description: 'Labels Gmail, priorités et actions appliqués selon vos règles.',
         icon: 'Zap',
       },
       {
-        title: 'Contrôle',
-        description: 'Vous validez avant envoi/archivage.',
+        title: 'Validation finale',
+        description: 'Les brouillons restent dans Gmail. Vous décidez de l’envoi.',
         icon: 'Shield',
       },
       {
-        title: 'Confidentialité',
-        description: 'Approche responsable + minimisation des données.',
+        title: 'Données maîtrisées',
+        description: 'Connexion Google OAuth, minimisation des données et accès révocable.',
         icon: 'Lock',
       },
     ],
   },
 
-  // Pricing
   pricing: {
-    title: 'Des offres simples. Un vrai gain de temps.',
-    disclaimer: 'Le tarif dépend de vos besoins, du volume d\'emails et du niveau de personnalisation.',
+    title: 'Choisissez l’offre adaptée à votre volume Gmail.',
+    disclaimer:
+      'Après le choix de l’offre, vous créez votre compte, connectez Gmail, puis configurez vos règles depuis le dashboard.',
     plans: [
       {
-        name: 'Essentiel',
-        description: 'Parfait pour débuter',
-        setup: '299€',
-        setupLabel: 'Setup',
-        price: '59€ – 99€',
+        name: 'Starter',
+        description: 'Pour tester l’automatisation Gmail simplement.',
+        setup: '49€',
+        setupLabel: 'Mise en place',
+        price: '29€',
         period: '/mois',
         features: [
-          'Tri automatique des emails',
-          'Jusqu\'à 5 catégories personnalisées',
-          'Réponses simples pré-rédigées',
-          'Archivage intelligent',
-          'Installation rapide',
+          '5 labels Gmail',
+          '1 500 emails traités par mois',
+          '100 brouillons IA par mois',
+          '1 analyse de style par mois',
+          'Traitement automatique toutes les 30 min minimum',
+          'Telegram non inclus',
           'Support standard',
         ],
         cta: 'Voir les détails du pack',
@@ -83,35 +81,37 @@ export const copy = {
       },
       {
         name: 'Pro',
-        description: 'Le plus populaire',
-        setup: '499€',
-        setupLabel: 'Setup',
-        price: '109€ – 139€',
+        description: 'Pour indépendants et petites équipes qui vivent dans Gmail.',
+        setup: '99€',
+        setupLabel: 'Mise en place',
+        price: '69€',
         period: '/mois',
         features: [
-          'Tout Essentiel',
-          'Jusqu\'à 10 catégories personnalisées',
-          'Réponses plus intelligentes',
-          'Brouillons optimisés',
-          'Relances automatiques',
-          'Paramétrage avancé',
+          '12 labels Gmail',
+          '4 000 emails traités par mois',
+          '400 brouillons IA par mois',
+          'Alertes Telegram par catégorie',
+          '2 analyses de style par mois',
+          'Traitement automatique toutes les 10 min minimum',
+          'Support prioritaire',
         ],
         cta: 'Voir les détails du pack',
         featured: true,
       },
       {
         name: 'Premium',
-        description: 'Pour les équipes',
-        setup: '999€',
-        setupLabel: 'Setup',
-        price: '169€ – 229€',
+        description: 'Pour volumes plus élevés et besoin de suivi plus rapide.',
+        setup: '199€',
+        setupLabel: 'Mise en place',
+        price: '129€',
         period: '/mois',
         features: [
-          'Tout Pro',
-          'Jusqu\'à 25 catégories personnalisées',
-          'Règles sur-mesure',
-          'Automatisation avancée',
-          'Accompagnement dédié',
+          '25 catégories personnalisées',
+          '10 000 emails traités par mois',
+          '1 200 brouillons IA par mois',
+          'Telegram avancé',
+          '4 analyses de style par mois',
+          'Traitement automatique toutes les 5 min minimum',
           'Support prioritaire',
         ],
         cta: 'Voir les détails du pack',
@@ -120,150 +120,163 @@ export const copy = {
     ],
   },
 
-  // How it works
   howItWorks: {
     title: 'Comment ça marche',
-    setupTime: 'Délai de mise en place: 24–48h',
+    setupTime: 'Mise en place en 15 minutes',
     steps: [
       {
         number: '1',
-        title: 'On configure',
-        description: '15 min',
+        title: 'Connectez Gmail',
+        description:
+          'Vous connectez votre boîte Gmail en quelques clics. Toolia ne demande jamais votre mot de passe.',
         icon: 'Cog',
       },
       {
         number: '2',
-        title: 'Toolia prépare',
-        description: 'tri + brouillons + notifications',
+        title: 'Choisissez vos règles',
+        description:
+          'Définissez vos catégories, vos labels, les alertes Telegram et les brouillons à préparer.',
         icon: 'Zap',
       },
       {
         number: '3',
+        title: 'Toolia travaille en arrière-plan',
+        description:
+          'Les emails sont traités automatiquement selon votre offre : 30 min, 10 min ou 5 min minimum.',
+        icon: 'Zap',
+      },
+      {
+        number: '4',
         title: 'Vous validez',
-        description: 'envoi/archivage',
+        description:
+          'Les brouillons restent dans Gmail. Rien n’est envoyé automatiquement sans votre validation.',
         icon: 'Check',
       },
     ],
   },
 
-  // Stats
   stats: {
-    title: 'Des résultats concrets, dès les premières semaines',
+    title: 'Des repères concrets pour reprendre le contrôle de Gmail',
     items: [
       {
-        value: '5–10h',
-        label: 'par semaine récupérées',
+        value: 'Jusqu’à 5–10h',
+        label: 'récupérées par semaine selon le volume',
         icon: 'TrendingUp',
       },
       {
-        value: '0',
-        label: 'email important oublié',
+        value: 'Priorités',
+        label: 'moins d’emails importants oubliés',
         icon: 'Mail',
       },
       {
-        value: '24–48h',
-        label: 'pour être opérationnel',
+        value: '15 min',
+        label: 'pour configurer les premières règles',
         icon: 'Clock',
       },
       {
-        value: '24/7',
-        label: 'Support réactif',
+        value: 'Continu',
+        label: 'automatisation en arrière-plan selon votre offre',
         icon: 'Headphones',
       },
     ],
   },
 
-  // FAQ
   faq: {
     title: 'Questions fréquentes',
     items: [
       {
-        question: 'Toolia peut-elle répondre et envoyer des emails à ma place ?',
-        answer: 'Oui, si vous le souhaitez. Deux modes : validation avant envoi (vous gardez le contrôle) ou envoi automatique sur des cas simples (ex: confirmations, relances, infos récurrentes). On choisit ensemble ce qui est automatique et ce qui reste à valider.',
+        question: 'Est-ce que Toolia envoie des emails à ma place ?',
+        answer:
+          'Non. Toolia prépare des brouillons dans Gmail, mais vous gardez la validation finale. L’envoi automatique n’est pas activé par défaut.',
       },
       {
-        question: 'Est-ce que ça change mes habitudes ?',
-        answer: 'Non, ça ne change pas vos habitudes. Vous continuez à travailler comme avant, mais Toolia gère le tri et les tâches répétitives, ce qui booste vraiment votre efficacité.',
+        question: 'Est-ce que Toolia lit tous mes emails ?',
+        answer:
+          'Toolia analyse les emails nécessaires au tri, aux labels, aux brouillons et aux alertes. L’objectif est de minimiser les données utilisées.',
       },
       {
-        question: 'Combien de temps pour que Toolia soit opérationnelle ?',
-        answer: 'En général 24 à 48h. On met en place le tri, les règles et les réponses types, puis on ajuste selon vos retours.',
+        question: 'Est-ce que je dois donner mon mot de passe Gmail ?',
+        answer:
+          'Non. La connexion se fait via Google OAuth. Vous pouvez révoquer l’accès depuis votre compte Google à tout moment.',
       },
       {
-        question: 'Confidentialité : comment sont protégées mes données ?',
-        answer: 'Vos données sont traitées avec une approche responsable : minimisation, accès limité et aucune revente. Vous gardez le contrôle et on peut définir exactement ce qui est utilisé (ou non).',
+        question: 'Combien de temps faut-il pour commencer ?',
+        answer:
+          'La configuration peut se faire en quelques minutes : compte, offre, connexion Gmail, catégories et activation.',
       },
       {
-        question: 'Est-ce personnalisable à mon activité ?',
-        answer: 'Oui. Toolia s\'adapte à votre métier : catégories, règles, labels, ton des réponses et scénarios. Tout est configuré sur mesure selon vos besoins.',
+        question: 'À quelle fréquence mes emails sont-ils traités ?',
+        answer:
+          'Selon votre offre : Starter toutes les 30 minutes minimum, Pro toutes les 10 minutes minimum, Premium toutes les 5 minutes minimum.',
       },
       {
-        question: 'Comment ça démarre concrètement ?',
-        answer: 'On fait un appel court (15–20 min) pour comprendre votre besoin. Ensuite, on configure Toolia et vous recevez une première version sous 24–48h. On ajuste ensuite avec vos retours.',
+        question: 'Est-ce que mes emails sont supprimés ?',
+        answer:
+          'Non. Toolia ne supprime jamais définitivement vos emails. La V1 se concentre sur le tri, les labels, les brouillons et les alertes.',
+      },
+      {
+        question: 'Puis-je arrêter l’abonnement ?',
+        answer:
+          'Oui. Vous pouvez gérer votre abonnement depuis l’espace de facturation sécurisé Stripe.',
+      },
+      {
+        question: 'Telegram est-il inclus dans toutes les offres ?',
+        answer:
+          'Les alertes Telegram dépendent de l’offre. Starter ne les inclut pas, Pro et Premium donnent accès aux alertes plus avancées.',
       },
     ],
   },
 
-  // Contact Form
   contact: {
-    title: 'Booster mon efficacité',
-    subtitle: 'Laissez vos infos, on vous recontacte rapidement',
+    title: 'Contacter Toolia',
+    subtitle:
+      'Une question sur votre compte, la sécurité Gmail, la facturation ou une automatisation ? Envoyez un message.',
     benefits: [
-      'Gain de temps immédiat',
-      'Contrôle total maintenu',
-      'Confidentialité garantie',
+      'Support compte et facturation',
+      'Questions Gmail et sécurité',
+      'Aide configuration Toolia',
     ],
     form: {
       nameLabel: 'Nom',
       namePlaceholder: 'Votre nom',
-      emailLabel: 'Email pro',
+      emailLabel: 'Email professionnel',
       emailPlaceholder: 'vous@entreprise.com',
-      volumeLabel: 'Volume d\'emails/jour',
-      volumeOptions: [
-        { value: '<20', label: 'Moins de 20' },
-        { value: '20-50', label: '20 à 50' },
-        { value: '50-100', label: '50 à 100' },
-        { value: '100+', label: '100+' },
-      ],
-      messageLabel: 'Message (optionnel)',
-      messagePlaceholder: 'Dites-en plus sur votre projet...',
-      checkboxLabel: 'J\'accepte d\'être recontacté',
-      submitBtn: 'Lancer l\'automatisation',
+      subjectLabel: 'Sujet',
+      subjectPlaceholder: 'Exemple : question sur Gmail, facturation, configuration...',
+      messageLabel: 'Message',
+      messagePlaceholder: 'Expliquez votre demande en quelques lignes.',
+      checkboxLabel: 'J’accepte d’être recontacté au sujet de ma demande',
+      submitBtn: 'Envoyer le message',
       loadingBtn: 'Envoi…',
-      successMessage: 'Demande envoyée. On revient vers vous rapidement.',
+      successMessage: 'Message envoyé. Nous reviendrons vers vous dès que possible.',
       errorMessage: 'Une erreur est survenue. Veuillez réessayer.',
     },
   },
 
-  // Testimonials
   testimonials: {
-    title: 'Déjà plus de 200 boîtes mail optimisées.',
+    title: 'Un outil pensé pour les boîtes Gmail professionnelles.',
     items: [
       {
-        quote: 'Toolia a réduit nos emails de 70%. Je gagne 2h chaque jour.',
-        author: 'Margot B.',
-        role: 'Directrice générale',
-        company: 'Startup SaaS',
-        avatar: 'MB',
+        quote: 'Toolia m’aide à retrouver les bons emails plus vite et à préparer mes réponses.',
+        name: 'Margot B.',
+        role: 'Dirigeante',
+        initials: 'MB',
       },
       {
-        quote: 'Zéro perte d\'emails importants et un vrai gain de temps.',
-        author: 'Pierre Lefevre',
+        quote: 'Les labels et les brouillons me donnent une boîte de réception beaucoup plus lisible.',
+        name: 'Pierre L.',
         role: 'Responsable commercial',
-        company: 'PME Tech',
-        avatar: 'PL',
+        initials: 'PL',
       },
       {
-        quote: 'La meilleure IA mail du marché. Configurée en 48h.',
-        author: 'Sophie Martin',
-        role: 'Directrice',
-        company: 'Agence de consulting',
-        avatar: 'SM',
+        quote: 'Le plus important : je garde la main avant chaque envoi.',
+        name: 'Sophie M.',
+        role: 'Consultante',
+        initials: 'SM',
       },
     ],
   },
 
-  // Footer
   footer: {
     copyright: '© Toolia — Tous droits réservés',
     links: [
@@ -271,7 +284,10 @@ export const copy = {
       { label: 'Offres', href: '#pricing' },
       { label: 'FAQ', href: '#faq' },
       { label: 'Contact', href: '#contact' },
-      { label: 'Politique de confidentialité', href: '#privacy' },
+      { label: 'Confidentialité', href: '/privacy' },
+      { label: 'Conditions', href: '/terms' },
+      { label: 'Mentions légales', href: '/legal' },
+      { label: 'Support', href: '/support' },
     ],
   },
 }

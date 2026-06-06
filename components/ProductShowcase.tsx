@@ -9,6 +9,7 @@ import { Badge } from './Badge'
 import { Section } from './Section'
 import { ScrollReveal } from './ScrollReveal'
 import { copy } from '@/lib/copy'
+import { getTooliaClientState } from '@/lib/saas/client-navigation'
 
 export const ProductShowcase: React.FC = () => {
   const [expandedPlan, setExpandedPlan] = useState<number | null>(null)
@@ -17,51 +18,74 @@ export const ProductShowcase: React.FC = () => {
     setExpandedPlan(expandedPlan === idx ? null : idx)
   }
 
+  const startWithPlan = async (idx: number) => {
+    const state = await getTooliaClientState()
+    if (state.isLoggedIn && state.hasAutomation) {
+      window.location.href = '/dashboard'
+      return
+    }
+
+    const plans = [
+      { id: 'starter', name: 'Starter', maxLabels: 5 },
+      { id: 'pro', name: 'Pro', maxLabels: 12 },
+      { id: 'premium', name: 'Premium', maxLabels: 25 },
+    ]
+    const plan = plans[idx]
+
+    window.localStorage.setItem(
+      'toolia_selected_plan',
+      JSON.stringify({
+        ...plan,
+        price: copy.pricing.plans[idx].price,
+        setup: copy.pricing.plans[idx].setup,
+        description: copy.pricing.plans[idx].description,
+        features: copy.pricing.plans[idx].features,
+        paid: false,
+      }),
+    )
+    window.location.href = state.isLoggedIn ? `/pricing?plan=${plan.id}` : `/signup?plan=${plan.id}`
+  }
+
   return (
     <Section id="pricing" className="bg-gradient-to-b from-toolia-bg-secondary/40 via-toolia-bg-main to-toolia-bg-secondary/50">
       <div className="flex flex-col gap-16">
-        {/* Title */}
         <ScrollReveal>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center max-w-3xl mx-auto">
-            {copy.pricing.title}
-          </h2>
+          <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center">
+            <h2 className="text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
+              {copy.pricing.title}
+            </h2>
+            <p className="text-sm leading-6 text-toolia-text-secondary md:text-base">
+              {copy.pricing.disclaimer}
+            </p>
+          </div>
         </ScrollReveal>
 
-        {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-6">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3 lg:gap-6">
           {copy.pricing.plans.map((plan, idx) => (
             <ScrollReveal key={idx} delay={idx * 0.15}>
-              <motion.div
-                whileHover={{ y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
+              <motion.div whileHover={{ y: -8 }} transition={{ duration: 0.2 }}>
                 <Card
-                  className={`h-full flex flex-col gap-4 ${
-                    plan.featured
-                      ? 'lg:scale-105 border-toolia-primary shadow-lg ring-2 ring-toolia-primary/10'
-                      : ''
+                  className={`flex h-full flex-col gap-4 ${
+                    plan.featured ? 'border-toolia-primary shadow-lg ring-2 ring-toolia-primary/10 lg:scale-105' : ''
                   }`}
                 >
-                  {/* Header */}
                   <div>
-                    <div className="flex items-center justify-between mb-2 gap-2">
+                    <div className="mb-2 flex items-center justify-between gap-2">
                       <h3 className="text-2xl font-bold text-toolia-text">{plan.name}</h3>
                       {plan.featured && <Badge variant="primary" size="sm">Populaire</Badge>}
                     </div>
-                    <p className="text-sm text-toolia-text-secondary">{plan.description}</p>
+                    <p className="text-sm leading-6 text-toolia-text-secondary">{plan.description}</p>
                   </div>
 
-                  {/* Features */}
                   <div className="flex-1 space-y-3 py-2">
                     {plan.features.map((feature, featureIdx) => (
                       <div key={featureIdx} className="flex items-start gap-3">
-                        <Check size={20} className="text-toolia-success flex-shrink-0 mt-0.5" />
+                        <Check size={20} className="mt-0.5 flex-shrink-0 text-toolia-success" />
                         <span className="text-sm text-toolia-text">{feature}</span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Expandable Pricing */}
                   <AnimatePresence>
                     {expandedPlan === idx && (
                       <motion.div
@@ -71,31 +95,38 @@ export const ProductShowcase: React.FC = () => {
                         transition={{ duration: 0.3 }}
                         className="overflow-hidden"
                       >
-                        <div className="bg-toolia-primary/5 rounded-lg p-4 space-y-3 mb-4">
+                        <div className="mb-4 space-y-3 rounded-lg bg-toolia-primary/5 p-4">
                           <div>
-                            <span className="text-xs text-toolia-text-secondary font-medium block mb-1">{plan.setupLabel}</span>
+                            <span className="mb-1 block text-xs font-medium text-toolia-text-secondary">{plan.setupLabel}</span>
                             <span className="text-lg font-bold text-toolia-text">{plan.setup}</span>
                           </div>
                           <div>
-                            <span className="text-xs text-toolia-text-secondary font-medium block mb-1">Abonnement</span>
+                            <span className="mb-1 block text-xs font-medium text-toolia-text-secondary">Abonnement</span>
                             <div className="flex items-baseline gap-2">
                               <span className="text-lg font-bold text-toolia-text">{plan.price}</span>
                               <span className="text-toolia-text-secondary">{plan.period}</span>
                             </div>
                           </div>
+                          <Button
+                            variant={plan.featured ? 'primary' : 'outline'}
+                            size="md"
+                            className="w-full"
+                            onClick={() => void startWithPlan(idx)}
+                          >
+                            Commencer avec cette offre
+                          </Button>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  {/* CTA Button */}
                   <Button
                     variant={plan.featured ? 'primary' : 'outline'}
                     size="md"
                     className="w-full"
                     onClick={() => togglePlan(idx)}
                   >
-                    {plan.cta}
+                    Voir les détails du pack
                   </Button>
                 </Card>
               </motion.div>
@@ -103,18 +134,15 @@ export const ProductShowcase: React.FC = () => {
           ))}
         </div>
 
-        {/* Disclaimer */}
-        <motion.div
-          className="text-center max-w-2xl mx-auto"
+        <motion.p
+          className="mx-auto max-w-3xl text-center text-xs leading-6 text-toolia-text-secondary"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           viewport={{ once: true }}
         >
-          <p className="text-sm text-toolia-text-secondary italic">
-            {copy.pricing.disclaimer}
-          </p>
-        </motion.div>
+          Les paiements et changements d’offre passent par Stripe. Votre plan n’est activé qu’après confirmation du paiement.
+        </motion.p>
       </div>
     </Section>
   )

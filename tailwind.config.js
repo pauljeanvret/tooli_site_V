@@ -66,7 +66,7 @@ module.exports = {
         'tight-h2': '-0.02em',
       },
       maxWidth: {
-        'layout': '1200px',
+        'layout': '1440px',
         'screen-2xl': '1536px',
         'screen-3xl': '1920px',
         'screen-4xl': '2560px',
