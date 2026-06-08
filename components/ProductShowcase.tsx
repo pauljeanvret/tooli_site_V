@@ -47,8 +47,8 @@ export const ProductShowcase: React.FC = () => {
   }
 
   return (
-    <Section id="pricing" className="bg-gradient-to-b from-toolia-bg-secondary/40 via-toolia-bg-main to-toolia-bg-secondary/50">
-      <div className="flex flex-col gap-16">
+    <Section id="pricing">
+      <div className="flex flex-col gap-10 md:gap-14">
         <ScrollReveal>
           <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center">
             <h2 className="text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
@@ -63,7 +63,7 @@ export const ProductShowcase: React.FC = () => {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3 lg:gap-6">
           {copy.pricing.plans.map((plan, idx) => (
             <ScrollReveal key={idx} delay={idx * 0.15}>
-              <motion.div whileHover={{ y: -8 }} transition={{ duration: 0.2 }}>
+              <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
                 <Card
                   className={`flex h-full flex-col gap-4 ${
                     plan.featured ? 'border-toolia-primary shadow-lg ring-2 ring-toolia-primary/10 lg:scale-105' : ''

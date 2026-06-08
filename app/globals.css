@@ -133,12 +133,9 @@ html {
   color: #F0F2F5;
 }
 
-/* RevealSection styles: smooth, non-intrusive appearances */
+/* RevealSection fallback: sections must never hide the initial viewport. */
 .reveal-wrapper {
   position: relative;
-  /* we no longer clip children so that there are no visible seams
-     when a block becomes visible; the intersection logic keeps
-     revealed content on screen permanently */
 }
 
 .reveal-container {
@@ -146,35 +143,18 @@ html {
 }
 
 .reveal-content {
-  transform: translateY(16px) scale(0.997);
-  opacity: 0;
-  filter: blur(4px);
-  transition: transform 0.5s ease-out, opacity 0.5s ease-out, filter 0.4s ease;
-  will-change: transform, opacity, filter;
+  transform: none;
+  opacity: 1;
+  filter: none;
 }
 
 .reveal-visible .reveal-content {
-  transform: translateY(0) scale(1);
+  transform: none;
   opacity: 1;
-  filter: blur(0);
+  filter: none;
 }
 
-/* micro-stagger for direct children (up to 8) */
 .reveal-content > * {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-}
-.reveal-visible .reveal-content > *:nth-child(1) { transition-delay: 0.03s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(2) { transition-delay: 0.06s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(3) { transition-delay: 0.09s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(4) { transition-delay: 0.12s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(5) { transition-delay: 0.15s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(6) { transition-delay: 0.18s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(7) { transition-delay: 0.21s; opacity: 1; transform: translateY(0);} 
-.reveal-visible .reveal-content > *:nth-child(8) { transition-delay: 0.24s; opacity: 1; transform: translateY(0);} 
-
-/* Reduce intensity on small screens */
-@media (max-width: 640px) {
-  .reveal-content { transform: translateY(12px) scale(0.998); }
+  opacity: 1;
+  transform: none;
 }

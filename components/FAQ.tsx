@@ -31,8 +31,8 @@ export const FAQ: React.FC = () => {
   }
 
   return (
-    <Section id="faq" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/55">
-      <div className="flex flex-col gap-16">
+    <Section id="faq">
+      <div className="flex flex-col gap-10 md:gap-14">
         {/* Title */}
         <ScrollReveal>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center">

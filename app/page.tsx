@@ -6,35 +6,18 @@ import { Stats } from '@/components/Stats'
 import { Behind } from '@/components/Behind'
 import { FAQ } from '@/components/FAQ'
 import { ContactForm } from '@/components/ContactForm'
-import { RevealSection } from '@/components/RevealSection'
 
 export default function Home() {
   return (
-    <>
-      <RevealSection>
-        <Hero />
-      </RevealSection>
-      <RevealSection>
-        <Values />
-      </RevealSection>
-      <RevealSection>
-        <ProductShowcase />
-      </RevealSection>
-      <RevealSection>
-        <HowItWorks />
-      </RevealSection>
-      <RevealSection>
-        <Stats />
-      </RevealSection>
-      <RevealSection>
-        <FAQ />
-      </RevealSection>
-      <RevealSection>
-        <Behind />
-      </RevealSection>
-      <RevealSection>
-        <ContactForm />
-      </RevealSection>
-    </>
+    <div className="bg-toolia-bg-main">
+      <Hero />
+      <Values />
+      <ProductShowcase />
+      <HowItWorks />
+      <Stats />
+      <FAQ />
+      <Behind />
+      <ContactForm />
+    </div>
   )
 }

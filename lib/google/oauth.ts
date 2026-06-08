@@ -5,9 +5,6 @@ export const GOOGLE_GMAIL_SCOPES = [
   'openid',
   'email',
   'profile',
-  'https://www.googleapis.com/auth/gmail.labels',
-  'https://www.googleapis.com/auth/gmail.compose',
-  'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.modify',
 ] as const
 

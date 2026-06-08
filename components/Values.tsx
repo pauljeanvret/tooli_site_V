@@ -16,8 +16,8 @@ const iconMap = {
 
 export const Values: React.FC = () => {
   return (
-    <Section id="product" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/40">
-      <div className="flex flex-col gap-16">
+    <Section id="product">
+      <div className="flex flex-col gap-10 md:gap-14">
         {/* Title */}
         <ScrollReveal>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center max-w-3xl mx-auto">
@@ -32,7 +32,7 @@ export const Values: React.FC = () => {
             return (
               <ScrollReveal key={idx} delay={idx * 0.1}>
                 <motion.div
-                  whileHover={{ y: -8 }}
+                  whileHover={{ y: -3 }}
                   transition={{ duration: 0.2 }}
                 >
                   <Card className="h-full flex flex-col gap-4 hover:border-toolia-primary hover:shadow-lg">

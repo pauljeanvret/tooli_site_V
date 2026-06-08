@@ -8,7 +8,7 @@ import { ScrollReveal } from './ScrollReveal'
 
 export const Behind: React.FC = () => {
   return (
-    <Section id="behind" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/40">
+    <Section id="behind">
       <div className="mx-auto flex max-w-4xl flex-col gap-12">
         <ScrollReveal>
           <h2 className="text-2xl font-bold text-toolia-text md:text-3xl lg:text-4xl">

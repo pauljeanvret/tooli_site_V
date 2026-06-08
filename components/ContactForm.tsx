@@ -111,7 +111,7 @@ export const ContactForm: React.FC = () => {
   }
 
   return (
-    <Section id="contact" className="bg-gradient-to-b from-toolia-bg-secondary/55 via-toolia-bg-main to-toolia-bg-secondary/80">
+    <Section id="contact">
       <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[0.86fr_1.14fr]">
         <ScrollReveal>
           <div className="flex max-w-xl flex-col gap-8">

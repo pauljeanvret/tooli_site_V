@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from 'react'
 import { motion, useAnimation, useInView } from 'framer-motion'
-import { transitionConfig } from '@/lib/utils'
 
 interface ScrollRevealProps {
   children: React.ReactNode
@@ -13,7 +12,7 @@ interface ScrollRevealProps {
 
 export const ScrollReveal: React.FC<ScrollRevealProps> = ({ children, delay = 0, className, stagger = false }) => {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const isInView = useInView(ref, { once: true, margin: '0px 0px -12% 0px' })
   const controls = useAnimation()
 
   useEffect(() => {
@@ -23,12 +22,13 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({ children, delay = 0,
   }, [isInView, controls])
 
   const variants = {
-    hidden: { opacity: 0, y: 12 },
+    hidden: { opacity: 0, y: 8 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        ...transitionConfig.slow,
+        duration: 0.42,
+        ease: [0.22, 1, 0.36, 1],
         delay,
       },
     },
@@ -45,8 +45,8 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({ children, delay = 0,
           visible: {
             opacity: 1,
             transition: {
-              delayChildren: 0.08,
-              staggerChildren: 0.08,
+              delayChildren: 0.04,
+              staggerChildren: 0.06,
             },
           },
         }}

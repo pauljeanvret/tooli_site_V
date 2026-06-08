@@ -10,8 +10,8 @@ import { copy } from '@/lib/copy'
 
 export const HowItWorks: React.FC = () => {
   return (
-    <Section id="how" className="bg-gradient-to-b from-toolia-bg-secondary/50 via-toolia-bg-main to-toolia-bg-secondary/45">
-      <div className="flex flex-col gap-16">
+    <Section id="how">
+      <div className="flex flex-col gap-10 md:gap-14">
         <ScrollReveal>
           <div className="flex flex-col gap-6">
             <h2 className="text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
@@ -28,7 +28,7 @@ export const HowItWorks: React.FC = () => {
         <div className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-2 xl:grid-cols-4">
           {copy.howItWorks.steps.map((step, idx) => (
             <ScrollReveal key={idx} delay={idx * 0.15}>
-              <motion.div className="relative flex h-full flex-col gap-6" whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+              <motion.div className="relative flex h-full flex-col gap-6" whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
                 <div className="flex h-full flex-col gap-4 rounded-card border border-toolia-border-subtle bg-gradient-to-br from-toolia-card to-toolia-gradient-dark/20 p-8">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-toolia-primary text-xl font-bold text-white">
                     {step.number}

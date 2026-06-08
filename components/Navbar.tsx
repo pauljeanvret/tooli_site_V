@@ -78,7 +78,7 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <nav className="fixed left-0 right-0 top-0 z-50 h-18 border-b border-toolia-border-subtle bg-toolia-bg-main/80 backdrop-blur-navbar">
-        <div className="mx-auto flex h-full max-w-layout items-center justify-between px-6 md:px-8 xl:px-10">
+        <div className="mx-auto flex h-full max-w-layout items-center justify-between px-4 sm:px-6 md:px-8 xl:px-10">
           <motion.div className="font-bold text-lg" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
             <button
               type="button"
@@ -184,13 +184,25 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          <button
-            className="text-toolia-text transition-colors hover:text-toolia-primary md:hidden"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Ouvrir le menu"
-          >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false)
+                window.location.href = account ? '/dashboard' : '/signup'
+              }}
+              className="rounded-full border border-toolia-border-subtle bg-toolia-card-hover px-3 py-1.5 text-xs font-semibold text-toolia-text transition hover:border-toolia-primary/60 hover:bg-toolia-card"
+            >
+              {account ? 'Espace' : 'Commencer'}
+            </button>
+            <button
+              className="text-toolia-text transition-colors hover:text-toolia-primary"
+              onClick={() => setIsOpen(!isOpen)}
+              aria-label="Ouvrir le menu"
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
       </nav>
 
