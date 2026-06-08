@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildThreadContextForAI, fetchGmailThread } from '@/lib/saas/gmail-thread'
-import { getConnectedGmailConnection, hasGmailReadonlyScope } from '@/lib/saas/gmail-store'
+import { getConnectedGmailConnection, hasGmailModifyScope } from '@/lib/saas/gmail-store'
 import { requirePaidSaasRouteAccess } from '@/lib/saas/route-access'
 
 export async function GET(request: NextRequest) {
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, message: 'Gmail non connecté.' }, { status: 400 })
   }
 
-  if (!hasGmailReadonlyScope(connection)) {
-    return NextResponse.json({ ok: false, message: 'Autorisation Gmail lecture manquante.' }, { status: 403 })
+  if (!hasGmailModifyScope(connection)) {
+    return NextResponse.json({ ok: false, message: 'Autorisation Gmail à mettre à jour.' }, { status: 403 })
   }
 
   try {

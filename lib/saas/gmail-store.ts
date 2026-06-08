@@ -138,11 +138,13 @@ function getConnectionScopes(connection: Pick<GmailConnectionRow, 'scopes' | 'sc
 }
 
 export function hasGmailComposeScope(connection: Pick<GmailConnectionRow, 'scopes' | 'scope'> | null | undefined) {
-  return getConnectionScopes(connection).includes(GMAIL_COMPOSE_SCOPE)
+  const scopes = getConnectionScopes(connection)
+  return scopes.includes(GMAIL_COMPOSE_SCOPE) || scopes.includes(GMAIL_MODIFY_SCOPE)
 }
 
 export function hasGmailReadonlyScope(connection: Pick<GmailConnectionRow, 'scopes' | 'scope'> | null | undefined) {
-  return getConnectionScopes(connection).includes(GMAIL_READONLY_SCOPE)
+  const scopes = getConnectionScopes(connection)
+  return scopes.includes(GMAIL_READONLY_SCOPE) || scopes.includes(GMAIL_MODIFY_SCOPE)
 }
 
 export function hasGmailModifyScope(connection: Pick<GmailConnectionRow, 'scopes' | 'scope'> | null | undefined) {
@@ -150,7 +152,7 @@ export function hasGmailModifyScope(connection: Pick<GmailConnectionRow, 'scopes
 }
 
 export function hasRequiredGmailScopes(connection: Pick<GmailConnectionRow, 'scopes' | 'scope'> | null | undefined) {
-  return hasGmailComposeScope(connection) && hasGmailReadonlyScope(connection) && hasGmailModifyScope(connection)
+  return hasGmailModifyScope(connection)
 }
 
 export async function saveGmailConnection(input: {
@@ -224,7 +226,7 @@ export async function getGmailConnectionSummary(userId: string): Promise<GmailCo
     hasComposeScope: hasCompose,
     hasReadScope: hasRead,
     hasModifyScope: hasModify,
-    needsScopeUpgrade: connected && (!hasCompose || !hasRead || !hasModify),
+    needsScopeUpgrade: connected && !hasModify,
   }
 }
 

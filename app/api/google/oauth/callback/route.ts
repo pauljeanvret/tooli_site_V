@@ -52,9 +52,9 @@ export async function GET(request: NextRequest) {
     console.info('[google/oauth/callback] Gmail tokens received', {
       hasAccessToken: Boolean(tokens.access_token),
       hasRefreshToken: Boolean(tokens.refresh_token),
-      hasComposeScope: scopes.includes('https://www.googleapis.com/auth/gmail.compose'),
-      hasReadScope: scopes.includes('https://www.googleapis.com/auth/gmail.readonly'),
       hasModifyScope: scopes.includes('https://www.googleapis.com/auth/gmail.modify'),
+      draftCreationAllowed: scopes.includes('https://www.googleapis.com/auth/gmail.modify'),
+      readingAllowed: scopes.includes('https://www.googleapis.com/auth/gmail.modify'),
       expiresAtExists: Boolean(expiresAt),
       googleEmail,
     })

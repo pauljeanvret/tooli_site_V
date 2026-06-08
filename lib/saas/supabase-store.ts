@@ -45,6 +45,8 @@ const gmailReadonlyScope = 'https://www.googleapis.com/auth/gmail.readonly'
 const gmailModifyScope = 'https://www.googleapis.com/auth/gmail.modify'
 
 function hasComposeScope(connection: { scopes?: string[] | null; scope?: string | null } | null | undefined) {
+  if (hasModifyScope(connection)) return true
+
   return Boolean(
     connection?.scopes?.includes(gmailComposeScope) ||
       connection?.scope?.split(' ').includes(gmailComposeScope),
@@ -52,6 +54,8 @@ function hasComposeScope(connection: { scopes?: string[] | null; scope?: string 
 }
 
 function hasReadScope(connection: { scopes?: string[] | null; scope?: string | null } | null | undefined) {
+  if (hasModifyScope(connection)) return true
+
   return Boolean(
     connection?.scopes?.includes(gmailReadonlyScope) ||
       connection?.scope?.split(' ').includes(gmailReadonlyScope),
@@ -585,9 +589,7 @@ export async function getPersistedSaasState(userId: string) {
         hasComposeScope: hasComposeScope(gmailConnection),
         hasReadScope: hasReadScope(gmailConnection),
         hasModifyScope: hasModifyScope(gmailConnection),
-        needsScopeUpgrade:
-          gmailConnected &&
-          (!hasComposeScope(gmailConnection) || !hasReadScope(gmailConnection) || !hasModifyScope(gmailConnection)),
+        needsScopeUpgrade: gmailConnected && !hasModifyScope(gmailConnection),
       },
     }
   }
@@ -635,9 +637,7 @@ export async function getPersistedSaasState(userId: string) {
       hasComposeScope: hasComposeScope(gmailConnection),
       hasReadScope: hasReadScope(gmailConnection),
       hasModifyScope: hasModifyScope(gmailConnection),
-      needsScopeUpgrade:
-        gmailConnected &&
-        (!hasComposeScope(gmailConnection) || !hasReadScope(gmailConnection) || !hasModifyScope(gmailConnection)),
+      needsScopeUpgrade: gmailConnected && !hasModifyScope(gmailConnection),
     },
     telegram,
     dashboard: {

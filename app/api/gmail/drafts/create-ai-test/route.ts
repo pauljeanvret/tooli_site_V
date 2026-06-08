@@ -12,7 +12,7 @@ import {
 } from '@/lib/ai/provider'
 import type { AutomationProfile, OnboardingAnswers } from '@/lib/saas/schemas'
 import { getPersistedSaasState, getWritingStyleProfile } from '@/lib/saas/supabase-store'
-import { getOAuthClientForUser, hasGmailComposeScope } from '@/lib/saas/gmail-store'
+import { getOAuthClientForUser, hasGmailModifyScope } from '@/lib/saas/gmail-store'
 import { base64UrlEncode, buildGmailDraftMime } from '@/lib/saas/gmail-draft-mime'
 import { checkQuota, getMonthlyUsageSnapshot, recordUsage } from '@/lib/saas/plan-limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -176,15 +176,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { oauth2Client, connection } = await getOAuthClientForUser(user.id)
-    const hasCompose = hasGmailComposeScope(connection)
+    const hasDraftAuthorization = hasGmailModifyScope(connection)
     const gmailEmail = connection.google_email || connection.gmail_email
 
     if (!gmailEmail) {
       return jsonError(400, 'gmail_connection', 'Connexion Gmail incomplète.')
     }
 
-    if (!hasCompose) {
-      return jsonError(403, 'gmail_scope', 'Reconnectez Gmail pour autoriser la création de brouillons.')
+    if (!hasDraftAuthorization) {
+      return jsonError(403, 'gmail_scope', 'Reconnectez Gmail pour autoriser Toolia à gérer vos emails et brouillons.')
     }
 
     const draftQuota = await checkQuota(user.id, 'ai_draft', 1)
@@ -265,7 +265,8 @@ export async function POST(request: NextRequest) {
     console.info('[gmail/drafts/create-ai-test] Draft created', {
       hasAccessToken: Boolean(connection.access_token_encrypted),
       hasRefreshToken: Boolean(connection.refresh_token_encrypted),
-      hasComposeScope: hasCompose,
+      hasModifyScope: hasDraftAuthorization,
+      draftCreationAllowed: hasDraftAuthorization,
       hasOpenRouterKey: Boolean(process.env.OPENROUTER_API_KEY),
       provider: aiDraft.provider,
       model: aiDraft.model,

@@ -6,7 +6,6 @@ import { base64UrlEncode, buildGmailDraftMime } from '@/lib/saas/gmail-draft-mim
 import {
   ensureRealGmailLabels,
   getOAuthClientForUser,
-  hasGmailComposeScope,
   hasGmailModifyScope,
 } from '@/lib/saas/gmail-store'
 import {
@@ -1496,8 +1495,8 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
     }
 
     if (canCreateDraft && category) {
-      if (!hasGmailComposeScope(connection)) {
-        reason = 'Autorisation Gmail brouillons à mettre à jour.'
+      if (!hasGmailModifyScope(connection)) {
+        reason = 'Autorisation Gmail à mettre à jour.'
         draftDecisionReason = reason
         debug.skippedMissingComposeScope += 1
       } else {
@@ -2014,8 +2013,8 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
       }
 
       if (canCreateDraft && category) {
-        if (!hasGmailComposeScope(connection)) {
-          reason = 'Autorisation Gmail brouillons à mettre à jour.'
+        if (!hasGmailModifyScope(connection)) {
+          reason = 'Autorisation Gmail à mettre à jour.'
           draftDecisionReason = reason
           debug.skippedMissingComposeScope += 1
         } else {
@@ -2430,3 +2429,4 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return handleWorker(request)
 }
+

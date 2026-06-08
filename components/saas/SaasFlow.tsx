@@ -3057,7 +3057,7 @@ export function GmailSetupClient() {
     <SaasShell
       eyebrow="Gmail"
       title="Connexion Gmail sécurisée"
-      description="La connexion réelle se fera directement avec Google. Toolia ne vous demandera jamais votre mot de passe Gmail."
+      description="Vous serez redirigé vers Google pour autoriser Toolia. Toolia ne vous demandera jamais votre mot de passe Gmail."
       showDemoNotice={demo}
     >
       <div className="grid gap-6 lg:grid-cols-2">
@@ -3065,9 +3065,9 @@ export function GmailSetupClient() {
           <div className="flex items-start gap-4">
             <Mail className="mt-1 text-toolia-info" />
             <div>
-              <h2 className="text-2xl font-bold text-toolia-text">Continuer en mode test</h2>
+              <h2 className="text-2xl font-bold text-toolia-text">Connecter Gmail</h2>
               <p className="mt-3 text-sm text-toolia-text-secondary">
-                Vous pouvez continuer le parcours sans connecter de vrai compte Gmail. Les labels seront seulement prévisualisés.
+                Autorisez Toolia depuis Google pour créer vos labels, lire les emails à traiter et préparer vos brouillons dans Gmail.
               </p>
             </div>
           </div>
@@ -3082,29 +3082,31 @@ export function GmailSetupClient() {
             Connecter mon Gmail avec Google
           </Button>
           <p className="mt-3 text-sm text-toolia-text-secondary">
-            Bientôt activé avec la connexion Google sécurisée. Toolia ne vous demandera jamais votre mot de passe.
+            Toolia utilise l’autorisation Google sécurisée et ne vous demande jamais votre mot de passe Gmail.
           </p>
           {gmailError && <p className="mt-3 text-sm font-medium text-toolia-danger">{gmailError}</p>}
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className="mt-4 w-full"
-            onClick={() => {
-              writeStorage(storageKeys.gmail, {
-                connected: false,
-                mode: 'test',
-                passwordRequestedByToolia: false,
-              })
-              if (fromDashboard) {
-                router.push('/dashboard')
-                return
-              }
-              router.push('/onboarding/profile')
-            }}
-          >
-            {fromDashboard ? 'Continuer sans connecter Gmail' : 'Continuer en mode test'}
-          </Button>
+          {demo && (
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => {
+                writeStorage(storageKeys.gmail, {
+                  connected: false,
+                  mode: 'test',
+                  passwordRequestedByToolia: false,
+                })
+                if (fromDashboard) {
+                  router.push('/dashboard')
+                  return
+                }
+                router.push('/onboarding/profile')
+              }}
+            >
+              Continuer sans connecter Gmail
+            </Button>
+          )}
         </AppCard>
         <AppCard>
           <div className="flex items-start gap-4">
@@ -3832,12 +3834,10 @@ export function DashboardClient() {
   if (!answers?.telegramPreference && profile?.global_settings.telegram_preference) {
     telegramSetting = telegramLabels[profile.global_settings.telegram_preference]
   }
-  const gmailNeedsComposeScope = Boolean(state?.gmailConnected && gmailState?.connected && !gmailState?.hasComposeScope)
-  const gmailNeedsReadScope = Boolean(state?.gmailConnected && gmailState?.connected && !gmailState?.hasReadScope)
   const gmailNeedsModifyScope = Boolean(state?.gmailConnected && gmailState?.connected && !gmailState?.hasModifyScope)
-  const gmailNeedsScopeUpgrade = gmailNeedsComposeScope || gmailNeedsReadScope || gmailNeedsModifyScope
-  const canCreateAiDraft = Boolean(state?.gmailConnected && gmailState?.hasComposeScope && aiStatus?.configured)
-  const canAnalyzeWritingStyle = Boolean(state?.gmailConnected && gmailState?.hasReadScope && aiStatus?.configured)
+  const gmailNeedsScopeUpgrade = gmailNeedsModifyScope
+  const canCreateAiDraft = Boolean(state?.gmailConnected && gmailState?.hasModifyScope && aiStatus?.configured)
+  const canAnalyzeWritingStyle = Boolean(state?.gmailConnected && gmailState?.hasModifyScope && aiStatus?.configured)
   const canAnalyzeRecentEmails = Boolean(state?.gmailConnected && gmailState?.hasModifyScope && aiStatus?.configured)
   const usageItems = usage
     ? [
@@ -4633,7 +4633,7 @@ export function DashboardClient() {
               Collez un exemple d’email reçu. Toolia prépare un brouillon dans Gmail, sans jamais l’envoyer.
             </p>
           </div>
-          {gmailNeedsComposeScope && (
+          {gmailNeedsModifyScope && (
             <Button type="button" variant="outline" onClick={connectGmailFromDashboard} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
@@ -4652,17 +4652,17 @@ export function DashboardClient() {
           {!state.gmailConnected && (
             <p className="text-sm font-medium text-toolia-text-secondary">Connectez Gmail pour créer un brouillon IA test.</p>
           )}
-          {state.gmailConnected && gmailNeedsComposeScope && (
+          {state.gmailConnected && gmailNeedsModifyScope && (
             <p className="text-sm font-medium text-toolia-warning">
-              Reconnectez Gmail pour autoriser la création de brouillons.
+              Reconnectez Gmail pour autoriser Toolia à gérer vos emails et brouillons.
             </p>
           )}
-          {state.gmailConnected && !gmailNeedsComposeScope && !aiStatus?.configured && (
+          {state.gmailConnected && !gmailNeedsModifyScope && !aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
               Clé IA manquante. Ajoutez OPENROUTER_API_KEY dans .env.local.
             </p>
           )}
-          {draftQuotaReached && state.gmailConnected && !gmailNeedsComposeScope && aiStatus?.configured && (
+          {draftQuotaReached && state.gmailConnected && !gmailNeedsModifyScope && aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
               Votre limite de brouillons IA est atteinte pour ce mois-ci.
             </p>
@@ -4710,7 +4710,7 @@ export function DashboardClient() {
               Les emails bruts ne sont pas conservés.
             </p>
           </div>
-          {gmailNeedsReadScope && (
+          {gmailNeedsModifyScope && (
             <Button type="button" variant="outline" onClick={connectGmailFromDashboard} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
@@ -4725,15 +4725,15 @@ export function DashboardClient() {
           {!state.gmailConnected && (
             <p className="text-sm font-medium text-toolia-text-secondary">Connectez Gmail pour analyser votre style.</p>
           )}
-          {state.gmailConnected && gmailNeedsReadScope && (
-            <p className="text-sm font-medium text-toolia-warning">Autorisation Gmail lecture manquante.</p>
+          {state.gmailConnected && gmailNeedsModifyScope && (
+            <p className="text-sm font-medium text-toolia-warning">Autorisation Gmail à mettre à jour.</p>
           )}
-          {state.gmailConnected && !gmailNeedsReadScope && !aiStatus?.configured && (
+          {state.gmailConnected && !gmailNeedsModifyScope && !aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
               Clé IA manquante. Ajoutez OPENROUTER_API_KEY dans .env.local.
             </p>
           )}
-          {styleQuotaReached && state.gmailConnected && !gmailNeedsReadScope && aiStatus?.configured && (
+          {styleQuotaReached && state.gmailConnected && !gmailNeedsModifyScope && aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
               Vous avez déjà utilisé vos analyses de style ce mois-ci.
             </p>

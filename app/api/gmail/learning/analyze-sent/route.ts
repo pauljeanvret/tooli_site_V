@@ -3,7 +3,7 @@ import { google } from 'googleapis'
 import { analyzeWritingStyleFromSamples, AiStyleAnalysisError } from '@/lib/ai/provider'
 import {
   getOAuthClientForUser,
-  hasGmailReadonlyScope,
+  hasGmailModifyScope,
 } from '@/lib/saas/gmail-store'
 import {
   extractGmailMessageText,
@@ -55,15 +55,15 @@ export async function POST(request: NextRequest) {
 
   let sentEmailCount = 0
   let usableSampleCount = 0
-  let hasReadScope = false
+  let hasModifyScope = false
 
   try {
     const { oauth2Client, connection } = await getOAuthClientForUser(user.id)
-    hasReadScope = hasGmailReadonlyScope(connection)
+    hasModifyScope = hasGmailModifyScope(connection)
     const googleEmail = connection.google_email || connection.gmail_email
 
-    if (!hasReadScope) {
-      return jsonError(403, 'gmail_scope', 'Autorisation Gmail lecture manquante.')
+    if (!hasModifyScope) {
+      return jsonError(403, 'gmail_scope', 'Autorisation Gmail à mettre à jour.')
     }
 
     const styleQuota = await checkQuota(user.id, 'style_analysis', 1)
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }).catch(async () => getMonthlyUsageSnapshot(user.id))
 
     console.info('[gmail/learning/analyze-sent] Writing style analyzed', {
-      hasReadScope,
+      hasModifyScope,
       sentEmailCount,
       usableSampleCount,
       profileSaved: true,
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[gmail/learning/analyze-sent] Failed', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      hasReadScope,
+      hasModifyScope,
       sentEmailCount,
       usableSampleCount,
       profileSaved: false,
