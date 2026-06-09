@@ -905,7 +905,8 @@ async function getCandidateAutomationProfiles(maxUsers: number) {
   const { data, error } = await supabase
     .from('automation_profiles')
     .select('id,user_id,status,profile_json,updated_at,last_worker_run_at,last_worker_status,last_worker_processed_count,last_worker_ai_cost_estimate')
-    .in('status', ['active', 'paused'])
+    .eq('status', 'active')
+    .order('last_worker_run_at', { ascending: true, nullsFirst: true })
     .order('updated_at', { ascending: false })
     .limit(maxUsers * 3)
 

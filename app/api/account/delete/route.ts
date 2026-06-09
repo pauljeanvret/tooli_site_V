@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getStripeSecretKey } from "@/lib/saas/stripe-plans";
 import { rejectMismatchedBodyUserId, requireAuthenticatedRouteUser } from "@/lib/supabase/route-auth";
 import { getSupabaseHost } from "@/lib/supabase/url";
 
@@ -28,6 +30,45 @@ async function deleteFromTable(table: string, userId: string) {
 
   const { error } = await admin.from(table).delete().eq("user_id", userId);
   if (error && error.code !== "42P01") throw error;
+}
+
+async function cancelStripeSubscriptionsForUser(userId: string) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("Client Supabase serveur indisponible.");
+
+  const { data, error } = await admin
+    .from("subscriptions")
+    .select("id,status,stripe_subscription_id")
+    .eq("user_id", userId)
+    .not("stripe_subscription_id", "is", null);
+
+  if (error && error.code !== "42P01") throw error;
+
+  const subscriptionsToCancel = (data || [])
+    .filter((subscription) => {
+      const status = String(subscription.status || "");
+      return Boolean(subscription.stripe_subscription_id && !["canceled", "cancelled", "demo"].includes(status));
+    })
+    .map((subscription) => String(subscription.stripe_subscription_id));
+
+  if (subscriptionsToCancel.length === 0) return;
+
+  const stripeSecretKey = getStripeSecretKey();
+  if (!stripeSecretKey) {
+    throw new Error("Configuration Stripe serveur indisponible pour annuler l’abonnement.");
+  }
+
+  const stripe = new Stripe(stripeSecretKey);
+  for (const subscriptionId of [...new Set(subscriptionsToCancel)]) {
+    try {
+      await stripe.subscriptions.cancel(subscriptionId);
+    } catch (error) {
+      const stripeError = error instanceof Error ? error.message : String(error);
+      if (!/No such subscription|already canceled|canceled/i.test(stripeError)) {
+        throw error;
+      }
+    }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -67,6 +108,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = auth.user.id;
+    await cancelStripeSubscriptionsForUser(userId);
+
     const { data: profileRows } = await admin.from("automation_profiles").select("id").eq("user_id", userId);
     const profileIds = (profileRows || []).map((row) => row.id).filter(Boolean);
 

@@ -364,6 +364,30 @@ export async function upsertStripeSubscription(input: {
     return { ok: false, message: "Client Supabase serveur indisponible." };
   }
 
+  const { data: profile, error: profileLookupError } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", input.userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (profileLookupError) {
+    console.error("[subscriptions] profile lookup failed before stripe upsert", {
+      userId: input.userId,
+      message: profileLookupError.message,
+    });
+    return { ok: false, message: profileLookupError.message };
+  }
+
+  if (!profile?.id) {
+    console.warn("[subscriptions] stripe upsert ignored for deleted profile", {
+      userId: input.userId,
+      hasStripeCustomerId: Boolean(input.stripeCustomerId),
+      hasStripeSubscriptionId: Boolean(input.stripeSubscriptionId),
+    });
+    return { ok: true, id: null, skipped: "profile_missing" };
+  }
+
   const planId = normalizePlanId(input.plan);
   const status = normalizeSubscriptionStatus(input.status);
   const existing = await findSubscriptionByStripeSubscriptionId(input.stripeSubscriptionId);
