@@ -56,6 +56,8 @@ const storageKeys = {
   editMode: 'toolia_editing_automation',
 }
 
+const allowDemoMode = process.env.NODE_ENV !== 'production'
+
 type DemoSession = {
   userId: string
   name: string
@@ -366,7 +368,7 @@ const rawPlanOptions: PlanOption[] = [
     price: '29 €/mois',
     setup: '49 € setup',
     maxLabels: 5,
-    description: 'Pour tester l’automatisation Gmail simplement.',
+    description: 'Pour démarrer avec une automatisation Gmail simple et maîtrisée.',
     features: ['5 labels Gmail', '1 500 emails traités/mois', '100 brouillons IA/mois', 'Traitement automatique toutes les 30 min minimum', 'Telegram non inclus'],
   },
   {
@@ -398,7 +400,7 @@ const planOptions: PlanOption[] = rawPlanOptions.map((plan) => {
       name: 'Starter',
       price: '29 €/mois',
       setup: '49 € setup',
-      description: 'Pour tester l’automatisation Gmail simplement.',
+      description: 'Pour démarrer avec une automatisation Gmail simple et maîtrisée.',
       features: ['5 labels Gmail', '1 500 emails traités/mois', '100 brouillons IA/mois', '1 analyse de style/mois', 'Traitement automatique toutes les 30 min minimum', 'Telegram non inclus'],
     }
   }
@@ -502,7 +504,7 @@ function getStoredPlan() {
 }
 
 function isDemoSession(session: DemoSession | null) {
-  return session?.mode === 'demo'
+  return allowDemoMode && session?.mode === 'demo'
 }
 
 function isValidEmail(email: string) {
@@ -511,7 +513,7 @@ function isValidEmail(email: string) {
 
 function hasValidSession(session: DemoSession | null) {
   if (!session) return false
-  if (session.mode === 'demo') return true
+  if (session.mode === 'demo') return allowDemoMode
 
   return session.name.trim().length > 1 && isValidEmail(session.email)
 }
@@ -749,7 +751,7 @@ function StatusPill({
 function DemoNotice() {
   return (
     <div className="rounded-card border border-toolia-warning/35 bg-toolia-warning/10 px-4 py-3 text-sm font-medium text-toolia-text">
-      Mode test — aucune connexion Gmail réelle, aucun paiement réel.
+      Parcours local — aucune connexion Gmail réelle, aucun paiement réel.
     </div>
   )
 }
@@ -1366,7 +1368,7 @@ export function SignupClient() {
     <SaasShell
       eyebrow="Compte"
       title="Lancez votre espace Toolia"
-      description="Choisissez si vous voulez tester le parcours sans action réelle, ou préparer un vrai espace client."
+      description="Créez votre compte pour choisir votre offre, configurer Toolia et connecter Gmail en toute sécurité."
     >
       {sessionCheckMessage && (
         <AppCard>
@@ -1384,7 +1386,7 @@ export function SignupClient() {
           </div>
         </AppCard>
       )}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className={allowDemoMode ? 'grid gap-6 lg:grid-cols-2' : 'grid max-w-2xl gap-6'}>
         <AppCard>
           <div className="mb-6">
             <StatusPill tone="success">A. Espace client</StatusPill>
@@ -1454,21 +1456,23 @@ export function SignupClient() {
             </Button>
           </form>
         </AppCard>
-        <AppCard className="flex flex-col justify-between gap-6">
-          <div>
-            <StatusPill tone="warning">B. Essai guidé</StatusPill>
-            <h2 className="mt-4 text-2xl font-bold text-toolia-text">Tester en mode test</h2>
-            <HelperText>
-              Parcourez tout le produit avec des exemples. C’est idéal pour comprendre Toolia sans paiement et sans toucher à votre vrai Gmail.
-            </HelperText>
-            <div className="mt-5">
-              <DemoNotice />
+        {allowDemoMode && (
+          <AppCard className="flex flex-col justify-between gap-6">
+            <div>
+              <StatusPill tone="warning">B. Parcours local</StatusPill>
+              <h2 className="mt-4 text-2xl font-bold text-toolia-text">Parcours de développement</h2>
+              <HelperText>
+                Parcourez le produit avec des exemples locaux, sans paiement et sans toucher à votre vrai Gmail.
+              </HelperText>
+              <div className="mt-5">
+                <DemoNotice />
+              </div>
             </div>
-          </div>
-          <Button type="button" variant="outline" size="lg" onClick={() => void startFlow('demo')}>
-            Tester en mode test
-          </Button>
-        </AppCard>
+            <Button type="button" variant="outline" size="lg" onClick={() => void startFlow('demo')}>
+              Ouvrir le parcours local
+            </Button>
+          </AppCard>
+        )}
       </div>
     </SaasShell>
   )
@@ -1727,10 +1731,10 @@ export function PricingClient() {
       title="Choisissez votre plan"
       description={
         demo
-          ? 'En mode test, le choix du plan sert seulement à tester les limites de labels. Aucun paiement réel n’est effectué.'
+          ? 'En parcours local, le choix du plan sert seulement à vérifier les limites de labels. Aucun paiement réel n’est effectué.'
           : 'Dans le vrai parcours client, le choix du plan redirigera ensuite vers Stripe Checkout pour finaliser le paiement.'
       }
-      showDemoNotice={demo}
+      showDemoNotice={allowDemoMode && demo}
     >
       {activePremiumSubscription && (
         <AppCard>
@@ -1790,7 +1794,7 @@ export function PricingClient() {
           </Button>
         </div>
         {promoApplied && (
-          <p className="mt-3 text-sm font-medium text-toolia-success">Code promo appliqué en mode test</p>
+          <p className="mt-3 text-sm font-medium text-toolia-success">Code promo appliqué.</p>
         )}
         {checkoutInfo && <p className="mt-3 text-sm font-medium text-toolia-text-secondary">{checkoutInfo}</p>}
         {checkoutError && <p className="mt-3 text-sm font-medium text-toolia-danger">{checkoutError}</p>}
@@ -2036,7 +2040,7 @@ export function ChangePlanClient({ targetPlanId }: { targetPlanId?: string | nul
       eyebrow="Facturation"
       title="Modifier mon offre"
       description="Vérifiez le changement avant d’ouvrir le paiement sécurisé Stripe."
-      showDemoNotice={isDemoSession(session)}
+      showDemoNotice={allowDemoMode && isDemoSession(session)}
     >
       <AppCard>
         {loading && <p className="text-sm text-toolia-text-secondary">Chargement de votre offre...</p>}
@@ -2507,7 +2511,7 @@ export function OnboardingWizard() {
       eyebrow={`Configuration ${step + 1}/${totalSteps}`}
       title="Configurez votre automatisation Gmail"
       description="Toolia va vous poser quelques questions pour comprendre comment vous voulez gérer vos emails. Plus vos réponses sont précises, plus l’automatisation sera fiable."
-      showDemoNotice={demo}
+      showDemoNotice={allowDemoMode && demo}
     >
       <AppCard>
         <div className="mb-6 rounded-card border border-toolia-border-subtle bg-toolia-card-hover p-4">
@@ -3058,7 +3062,7 @@ export function GmailSetupClient() {
       eyebrow="Gmail"
       title="Connexion Gmail sécurisée"
       description="Vous serez redirigé vers Google pour autoriser Toolia. Toolia ne vous demandera jamais votre mot de passe Gmail."
-      showDemoNotice={demo}
+      showDemoNotice={allowDemoMode && demo}
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <AppCard>
@@ -3085,7 +3089,7 @@ export function GmailSetupClient() {
             Toolia utilise l’autorisation Google sécurisée et ne vous demande jamais votre mot de passe Gmail.
           </p>
           {gmailError && <p className="mt-3 text-sm font-medium text-toolia-danger">{gmailError}</p>}
-          {demo && (
+          {allowDemoMode && demo && (
             <Button
               type="button"
               size="lg"
@@ -3104,7 +3108,7 @@ export function GmailSetupClient() {
                 router.push('/onboarding/profile')
               }}
             >
-              Continuer sans connecter Gmail
+              Continuer le parcours local
             </Button>
           )}
         </AppCard>
@@ -3272,7 +3276,7 @@ export function ProfileGeneratorClient() {
       eyebrow="Configuration"
       title="Votre configuration est prête"
       description="Voici le résumé de ce que Toolia va préparer pour votre boîte Gmail."
-      showDemoNotice={demo}
+      showDemoNotice={allowDemoMode && demo}
     >
       <AppCard>
         {!profile && !error && (
@@ -3458,7 +3462,12 @@ export function ActivationPreviewClient() {
   }, [router])
 
   const demo = isDemoSession(session)
-  const testMode = demo || gmailState?.mode === 'test' || gmailState?.mode === 'demo' || gmailState?.mode === 'pending'
+  const testMode = allowDemoMode && (
+    demo ||
+    gmailState?.mode === 'test' ||
+    gmailState?.mode === 'demo' ||
+    gmailState?.mode === 'pending'
+  )
   const realActivationReady = Boolean(session?.mode === 'account' && plan?.paid && gmailState?.connected)
   const canActivate = Boolean(profile && session && (testMode || realActivationReady))
   const disabledReasons = !testMode
@@ -3569,8 +3578,8 @@ export function ActivationPreviewClient() {
     <SaasShell
       eyebrow="Activation"
       title="Dernière vérification"
-      description={testMode ? 'Vous pouvez activer le test pour voir le tableau de bord. Rien ne sera créé dans un vrai Gmail.' : 'Avant d’activer Toolia, votre compte doit être prêt, l’offre validée et Gmail connecté.'}
-      showDemoNotice={testMode}
+      description="Avant d’activer Toolia, votre compte doit être prêt, l’offre validée et Gmail connecté."
+      showDemoNotice={allowDemoMode && testMode}
     >
       {!profile ? (
         <AppCard>
@@ -3591,12 +3600,12 @@ export function ActivationPreviewClient() {
               </div>
               <div className="flex items-center justify-between gap-3 rounded-card bg-toolia-card-hover px-3 py-2">
                 <span className="text-sm text-toolia-text-secondary">Offre</span>
-                <StatusPill tone={testMode || plan?.paid ? 'success' : 'warning'}>{plan?.name || 'À choisir'}</StatusPill>
+                <StatusPill tone={plan?.paid || testMode ? 'success' : 'warning'}>{plan?.name || 'À choisir'}</StatusPill>
               </div>
               <div className="flex items-center justify-between gap-3 rounded-card bg-toolia-card-hover px-3 py-2">
                 <span className="text-sm text-toolia-text-secondary">Gmail</span>
                 <StatusPill tone={gmailState?.connected ? 'success' : testMode ? 'warning' : 'danger'}>
-                  {gmailState?.connected ? 'Connecté' : testMode ? 'Mode test' : 'À connecter'}
+                  {gmailState?.connected ? 'Connecté' : 'À connecter'}
                 </StatusPill>
               </div>
             </div>
@@ -3607,7 +3616,7 @@ export function ActivationPreviewClient() {
                 ))}
               </div>
             )}
-            {testMode && (
+            {allowDemoMode && testMode && (
               <p className="mt-4 text-sm text-toolia-text-secondary">
                 Rien ne sera créé dans un vrai Gmail.
               </p>
@@ -3632,7 +3641,7 @@ export function ActivationPreviewClient() {
                 Retour
               </Link>
               <Button type="button" isLoading={loading} disabled={loading || !canActivate} onClick={activate}>
-                {testMode ? 'Activer le mode test' : 'Activer Toolia'}
+                Activer Toolia
               </Button>
             </div>
           </AppCard>
@@ -3804,7 +3813,7 @@ export function DashboardClient() {
   }, [])
 
   const demo = isDemoSession(session)
-  const testActive = demo || state?.status === 'active_test' || state?.subscriptionStatus === 'demo'
+  const testActive = allowDemoMode && (demo || state?.status === 'active_test' || state?.subscriptionStatus === 'demo')
   const automationRunning = state?.status === 'active' || state?.status === 'active_test'
   const validSession = hasValidSession(session)
   const configuredDraftCount = profile?.categories.filter((category) => category.actions.draft).length || 0
@@ -3862,19 +3871,17 @@ export function DashboardClient() {
         ? gmailNeedsScopeUpgrade
           ? 'Autorisation à mettre à jour'
           : 'Connecté'
-        : testActive
-          ? 'Mode test'
-          : 'À connecter',
+        : 'À connecter',
       tone: state?.gmailConnected && !gmailNeedsScopeUpgrade ? 'success' : 'warning',
     },
     {
       label: 'Offre',
-      value: plan?.paid ? `${plan.name} active` : plan?.name || 'Test',
+      value: plan?.paid ? `${plan.name} active` : plan?.name || 'Offre à choisir',
       tone: plan?.paid ? 'success' : 'info',
     },
     {
       label: 'Automatisation',
-      value: state?.status === 'active_test' ? 'Mode test actif' : state?.status === 'active' ? 'Active' : 'En pause',
+      value: automationRunning ? 'Active' : 'En pause',
       tone: automationRunning ? 'success' : 'warning',
     },
     {
@@ -3992,13 +3999,13 @@ export function DashboardClient() {
 
     try {
       const token = await getSupabaseAccessToken()
-      if (!token) throw new Error('Connectez-vous avant d’envoyer une alerte test.')
+      if (!token) throw new Error('Connectez-vous avant de vérifier Telegram.')
       const response = await fetch('/api/telegram/test', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await response.json()
-      setTelegramResult(data.message || 'Alerte Telegram test terminée.')
+      setTelegramResult(data.ok ? 'Alerte Telegram envoyée.' : data.message || 'Vérification Telegram impossible.')
       await refreshAccountState()
     } catch (error) {
       setTelegramResult(error instanceof Error ? error.message : 'Envoi Telegram impossible.')
@@ -4376,11 +4383,11 @@ export function DashboardClient() {
       eyebrow="Dashboard"
       title="Tableau de bord Toolia"
       description="Pilotez votre automatisation, vos labels, vos brouillons et vos alertes."
-      showDemoNotice={testActive}
+      showDemoNotice={allowDemoMode && testActive}
     >
-      {testActive && (
+      {allowDemoMode && testActive && (
         <div className="rounded-card border border-toolia-info/30 bg-toolia-info/10 px-4 py-3 text-sm font-medium text-toolia-text">
-          Mode test : aucune action réelle n’est effectuée.
+          Parcours local : aucune action réelle n’est effectuée.
         </div>
       )}
 
@@ -4414,9 +4421,7 @@ export function DashboardClient() {
               ? gmailNeedsScopeUpgrade
                 ? 'Autorisation Gmail à mettre à jour'
                 : 'Connecté'
-              : testActive
-                ? 'Mode test / à connecter'
-                : 'À connecter'}
+              : 'À connecter'}
           </StatusPill>
           {state.gmailConnected && gmailState?.googleEmail && (
             <p className="mt-2 text-sm font-medium text-toolia-text">{gmailState.googleEmail}</p>
@@ -4464,7 +4469,7 @@ export function DashboardClient() {
         <AppCard>
           <Gauge className="mb-3 text-toolia-info" />
           <h2 className="text-xl font-bold text-toolia-text">Plan</h2>
-          <p className="mt-1 font-semibold text-toolia-text">{plan?.name || 'Test'}</p>
+          <p className="mt-1 font-semibold text-toolia-text">{plan?.name || 'Offre à choisir'}</p>
           <p className="mt-3 text-sm text-toolia-text-secondary">
             Votre offre définit le nombre de labels et les options disponibles.
           </p>
@@ -4476,7 +4481,7 @@ export function DashboardClient() {
           {automationRunning ? <Play className="mb-3 text-toolia-success" /> : <Pause className="mb-3 text-toolia-warning" />}
           <h2 className="text-xl font-bold text-toolia-text">Automatisation</h2>
           <StatusPill tone={automationRunning ? 'success' : 'warning'}>
-            {state.status === 'active_test' ? 'Mode test actif' : state.status === 'active' ? 'Active' : 'En pause'}
+            {automationRunning ? 'Active' : 'En pause'}
           </StatusPill>
           <p className="mt-3 text-sm text-toolia-text-secondary">
             Toolia applique vos règles sur les emails entrants.
@@ -4539,7 +4544,7 @@ export function DashboardClient() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={testTelegram} disabled={telegramBusy} isLoading={telegramBusy}>
                     <Send size={16} />
-                    Envoyer une alerte test
+                    Vérifier Telegram
                   </Button>
                   <Button type="button" variant="ghost" onClick={disconnectTelegramFromDashboard} disabled={telegramBusy}>
                     Déconnecter Telegram
@@ -4628,7 +4633,7 @@ export function DashboardClient() {
       <AppCard>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-toolia-text">Tester un brouillon IA</h2>
+            <h2 className="text-2xl font-bold text-toolia-text">Créer un brouillon IA</h2>
             <p className="mt-2 text-sm text-toolia-text-secondary">
               Collez un exemple d’email reçu. Toolia prépare un brouillon dans Gmail, sans jamais l’envoyer.
             </p>
@@ -4650,7 +4655,7 @@ export function DashboardClient() {
         </label>
         <div className="mt-4 flex flex-col gap-3">
           {!state.gmailConnected && (
-            <p className="text-sm font-medium text-toolia-text-secondary">Connectez Gmail pour créer un brouillon IA test.</p>
+            <p className="text-sm font-medium text-toolia-text-secondary">Connectez Gmail pour créer un brouillon IA.</p>
           )}
           {state.gmailConnected && gmailNeedsModifyScope && (
             <p className="text-sm font-medium text-toolia-warning">
@@ -4669,7 +4674,7 @@ export function DashboardClient() {
           )}
           {canCreateAiDraftNow && (
             <Button type="button" onClick={createAiTestDraft} disabled={draftBusy} isLoading={draftBusy}>
-              {draftBusy ? 'Génération du brouillon…' : 'Créer un brouillon IA test'}
+              {draftBusy ? 'Génération du brouillon…' : 'Créer un brouillon IA'}
             </Button>
           )}
           {draftBusy && (

@@ -158,7 +158,7 @@ export const Hero: React.FC = () => {
           <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-toolia-card/95 p-4 shadow-2xl backdrop-blur sm:rounded-[28px] sm:p-5">
             <div className="mb-5 flex flex-col gap-3 border-b border-toolia-border-subtle pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-toolia-info">Démo produit</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-toolia-info">Vue produit</p>
                 <h2 className="mt-2 text-lg font-bold text-toolia-text sm:text-xl">Un email arrive, Toolia prépare le reste.</h2>
               </div>
               <span className="inline-flex w-fit rounded-full border border-toolia-success/35 bg-toolia-success/10 px-3 py-1 text-xs font-semibold text-toolia-success">

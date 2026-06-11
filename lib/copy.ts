@@ -62,7 +62,7 @@ export const copy = {
     plans: [
       {
         name: 'Starter',
-        description: 'Pour tester l’automatisation Gmail simplement.',
+        description: 'Pour démarrer avec une automatisation Gmail simple et maîtrisée.',
         setup: '49€',
         setupLabel: 'Mise en place',
         price: '29€',

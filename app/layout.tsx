@@ -1,16 +1,20 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import './globals.css'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 
 const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://toolia.tech'
+const siteTitle = 'Toolia — Votre boîte mail se gère toute seule'
+const siteDescription =
+  'Toolia trie vos emails Gmail, applique les bons labels et prépare vos brouillons de réponse. Vous gardez toujours le contrôle.'
+const logoUrl = '/profile/logo_white_transparent.png'
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
-  title: 'Toolia — Automatisation Gmail avec contrôle humain',
-  description:
-    'Toolia trie, priorise et prépare vos brouillons dans Gmail. Vous gardez la validation finale, Toolia s’occupe du répétitif.',
+  applicationName: 'Toolia',
+  title: siteTitle,
+  description: siteDescription,
   keywords: [
     'Toolia',
     'automatisation Gmail',
@@ -19,21 +23,37 @@ export const metadata: Metadata = {
     'gestion email',
     'productivité',
   ],
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [{ url: logoUrl, type: 'image/png' }],
+    apple: [{ url: logoUrl, type: 'image/png' }],
+  },
   openGraph: {
-    title: 'Toolia — Automatisation Gmail avec contrôle humain',
-    description:
-      'Connectez Gmail, configurez vos règles, laissez Toolia classer les emails et préparer les brouillons à valider.',
+    title: siteTitle,
+    description: siteDescription,
     url: appUrl,
     siteName: 'Toolia',
     type: 'website',
     locale: 'fr_FR',
+    images: [
+      {
+        url: logoUrl,
+        width: 1536,
+        height: 1024,
+        alt: 'Toolia',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Toolia — Automatisation Gmail avec contrôle humain',
-    description:
-      'Toolia trie, priorise et prépare vos brouillons dans Gmail. Vous gardez la main.',
+    title: siteTitle,
+    description: siteDescription,
+    images: [logoUrl],
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#1F2A4D',
 }
 
 export default function RootLayout({
@@ -44,7 +64,6 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
-        <meta name="theme-color" content="#1F2A4D" />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-JF98EYE0Q0"
           strategy="afterInteractive"
