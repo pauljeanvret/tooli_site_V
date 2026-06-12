@@ -28,7 +28,7 @@ export function startGoogleOAuth() {
     return {
       mode: 'demo' as const,
       authorizationUrl: '/onboarding/gmail?demo=1',
-      message: 'Mode test: aucune connexion Google réelle. Aucun mot de passe Gmail n’est demandé par Toolia.',
+      message: 'Connexion Google OAuth indisponible. Aucun mot de passe Gmail n’est demandé par Toolia.',
     }
   }
 
@@ -147,6 +147,6 @@ export async function testGmailConnection() {
     passwordRequestedByToolia: false,
     message: hasGoogleOAuthConfig()
       ? 'Configuration OAuth détectée.'
-      : 'Mode test: ajoutez les clés Google OAuth plus tard pour connecter Gmail.',
+      : 'Connexion Google OAuth à configurer avant de connecter Gmail.',
   }
 }

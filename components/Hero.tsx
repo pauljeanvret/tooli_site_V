@@ -2,57 +2,23 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle2, FileText, Mail, Tag } from 'lucide-react'
 import { Button } from './Button'
-import { Glow } from './Glow'
+import { AutomationMotionStrip } from './AutomationMotionStrip'
 import { copy } from '@/lib/copy'
 import { getTooliaClientState, routeToTooliaStart } from '@/lib/saas/client-navigation'
-
-const productSteps = [
-  {
-    icon: Mail,
-    label: 'Email reçu',
-    detail: 'Demande urgente client',
-    tone: 'info',
-  },
-  {
-    icon: Tag,
-    label: 'Label ajouté',
-    detail: 'Urgence',
-    tone: 'warning',
-  },
-  {
-    icon: FileText,
-    label: 'Brouillon préparé',
-    detail: 'Réponse prête dans Gmail',
-    tone: 'info',
-  },
-  {
-    icon: CheckCircle2,
-    label: 'Vous validez',
-    detail: 'Aucun envoi automatique',
-    tone: 'success',
-  },
-]
-
-const chipStyles = {
-  info: 'border-toolia-info/35 bg-toolia-info/10 text-toolia-info',
-  warning: 'border-toolia-warning/35 bg-toolia-warning/10 text-toolia-warning',
-  success: 'border-toolia-success/35 bg-toolia-success/10 text-toolia-success',
-}
 
 const heroGroup = {
   hidden: {},
   visible: {
     transition: {
-      staggerChildren: 0.07,
-      delayChildren: 0.03,
+      staggerChildren: 0.08,
+      delayChildren: 0.08,
     },
   },
 }
 
 const heroItem = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0 },
 }
 
@@ -73,56 +39,67 @@ export const Hero: React.FC = () => {
 
   const handleSmoothScroll = (href: string) => {
     const target = document.querySelector(href)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' })
-    }
+    if (target) target.scrollIntoView({ behavior: 'smooth' })
   }
 
   return (
-    <div id="hero" className="relative overflow-hidden bg-toolia-bg-main pb-14 pt-7 sm:pt-10 md:pt-16 lg:pb-0 lg:pt-20">
-      <Glow className="hidden top-12 -left-24 h-80 w-80 opacity-70 sm:block lg:h-[520px] lg:w-[520px]" color="primary" blur="lg" />
-      <Glow className="hidden bottom-24 -right-24 h-96 w-96 opacity-60 sm:block lg:h-[560px] lg:w-[560px]" color="primary" blur="lg" />
+    <section id="hero" className="relative isolate flex min-h-[86svh] overflow-hidden bg-toolia-bg-main pt-18 sm:min-h-[90svh]">
+      {/* Place the calm desk hero video at public/videos/hero-desk.mp4 */}
+      {/* Place the hero poster at public/videos/hero-desk-poster.jpg */}
+      {/* Optional: generate hero-desk-loop.mp4 for seamless ping-pong loop */}
+      <video
+        className="hero-video absolute inset-0 h-full w-full scale-[1.035] object-cover brightness-[1.02] saturate-[0.95] transition duration-500 dark:brightness-[0.55] dark:contrast-[1.08] dark:saturate-[0.85]"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster="/videos/hero-desk-poster.jpg"
+        aria-hidden="true"
+      >
+        <source src="/videos/hero-desk-loop.mp4" type="video/mp4" />
+        <source src="/videos/hero-desk.mp4" type="video/mp4" />
+      </video>
 
-      <div className="relative z-10 mx-auto grid min-h-[calc(100svh-72px)] max-w-layout grid-cols-1 items-start gap-8 px-4 sm:px-6 md:gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(500px,1.1fr)] lg:items-center lg:gap-14 lg:px-10 3xl:max-w-[1560px]">
+      <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/24 to-white/68 dark:from-[#030712]/70 dark:via-[#06101f]/48 dark:to-[#030712]/78" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.26),transparent_55%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.62),rgba(3,7,18,0.34)_42%,transparent_68%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.08)_38%,transparent_64%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.44),transparent_58%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-toolia-bg-main to-transparent" />
+
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-5 py-16 text-center sm:px-6 md:px-8 lg:px-10">
         <motion.div
-          className="flex max-w-3xl flex-col gap-5 md:gap-7"
+          className="mx-auto flex max-w-6xl flex-col items-center"
           initial="hidden"
           animate="visible"
           variants={heroGroup}
         >
           <motion.h1
-            className="text-[2.35rem] font-bold leading-[1.05] text-toolia-text sm:text-5xl md:text-5xl lg:text-6xl 2xl:text-7xl 3xl:text-8xl"
+            className="mx-auto max-w-[1100px] text-center text-[clamp(2.9rem,12vw,9.5rem)] font-semibold leading-[0.9] tracking-[-0.055em] text-slate-950 drop-shadow-[0_1px_18px_rgba(255,255,255,0.34)] [text-wrap:balance] dark:text-white dark:drop-shadow-[0_8px_34px_rgba(0,0,0,0.58)] sm:text-[clamp(4rem,10vw,9.5rem)]"
             variants={heroItem}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            {copy.hero.title}
+            <span className="block">Votre boîte mail</span>
+            <span className="block">se gère toute seule.</span>
           </motion.h1>
 
-          <motion.p
-            className="max-w-2xl text-base leading-7 text-toolia-text-secondary sm:text-lg md:text-xl"
+          <motion.div
+            className="mt-5 h-[3px] w-28 rounded-full bg-toolia-primary/72 shadow-[0_0_24px_rgba(31,42,77,0.26)] dark:bg-white/62 dark:shadow-[0_0_24px_rgba(147,197,253,0.32)]"
             variants={heroItem}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          />
+
+          <motion.p
+            className="mt-5 max-w-3xl text-[clamp(1.1rem,1.45vw,1.55rem)] leading-relaxed text-toolia-text-secondary dark:text-white/82"
+            variants={heroItem}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             {copy.hero.subtitle}
           </motion.p>
 
           <motion.div
-            className="hidden flex-col gap-3 sm:flex md:flex-row md:gap-6"
+            className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row"
             variants={heroItem}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {copy.hero.proofs.map((proof, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-sm text-toolia-text-secondary">
-                <div className="h-1.5 w-1.5 rounded-full bg-toolia-primary" />
-                {proof}
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div
-            className="flex flex-col gap-3 pt-1 sm:flex-row sm:pt-3"
-            variants={heroItem}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             <Button
               variant="primary"
@@ -130,98 +107,28 @@ export const Hero: React.FC = () => {
               onClick={() => {
                 void routeToTooliaStart()
               }}
-              className="sm:w-auto"
+              className="w-full sm:w-auto"
             >
               {primaryCta}
             </Button>
-            <Button variant="secondary" size="lg" onClick={() => handleSmoothScroll('#how')} className="sm:w-auto">
+            <Button variant="secondary" size="lg" onClick={() => handleSmoothScroll('#how')} className="w-full sm:w-auto">
               {copy.hero.cta2}
             </Button>
           </motion.div>
 
           <motion.p
-            className="text-xs text-toolia-text-secondary"
+            className="mt-6 text-xs text-toolia-text-secondary"
             variants={heroItem}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             {copy.hero.subCta}
           </motion.p>
         </motion.div>
-
-        <motion.div
-          className="relative mx-auto w-full max-w-2xl lg:pb-10"
-          initial={{ opacity: 0, scale: 0.985, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="absolute inset-8 rounded-[32px] bg-toolia-info/10 blur-3xl" />
-          <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-toolia-card/95 p-4 shadow-2xl backdrop-blur sm:rounded-[28px] sm:p-5">
-            <div className="mb-5 flex flex-col gap-3 border-b border-toolia-border-subtle pb-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-toolia-info">Vue produit</p>
-                <h2 className="mt-2 text-lg font-bold text-toolia-text sm:text-xl">Un email arrive, Toolia prépare le reste.</h2>
-              </div>
-              <span className="inline-flex w-fit rounded-full border border-toolia-success/35 bg-toolia-success/10 px-3 py-1 text-xs font-semibold text-toolia-success">
-                Contrôle humain
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-toolia-border-subtle bg-toolia-bg-secondary/70 p-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-toolia-info/15 text-toolia-info">
-                  <Mail size={20} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-semibold text-toolia-text">Marc Dubois</p>
-                  <p className="text-xs text-toolia-text-muted">09:12</p>
-                  </div>
-                  <p className="mt-2 text-base font-bold text-toolia-text sm:text-lg">Demande urgente client</p>
-                  <p className="mt-2 text-sm leading-6 text-toolia-text-secondary">
-                    Bonjour, pouvez-vous me confirmer rapidement le délai de livraison et les prochaines étapes ?
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-4">
-              {productSteps.map((step, index) => {
-                const Icon = step.icon
-                return (
-                  <motion.div
-                    key={step.label}
-                    className="rounded-2xl border border-toolia-border-subtle bg-toolia-bg-main/55 p-4"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.32, delay: 0.28 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-full border ${chipStyles[step.tone as keyof typeof chipStyles]}`}>
-                      <Icon size={17} />
-                    </div>
-                    <p className="text-sm font-semibold text-toolia-text">{step.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-toolia-text-secondary">{step.detail}</p>
-                  </motion.div>
-                )
-              })}
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-toolia-warning/30 bg-toolia-warning/10 p-3">
-                <p className="text-xs text-toolia-text-secondary">Label</p>
-                <p className="mt-1 text-sm font-bold text-toolia-warning">Urgence</p>
-              </div>
-              <div className="rounded-2xl border border-toolia-info/30 bg-toolia-info/10 p-3">
-                <p className="text-xs text-toolia-text-secondary">Brouillon</p>
-                <p className="mt-1 text-sm font-bold text-toolia-info">Prêt à relire</p>
-              </div>
-              <div className="rounded-2xl border border-toolia-success/30 bg-toolia-success/10 p-3">
-                <p className="text-xs text-toolia-text-secondary">Envoi</p>
-                <p className="mt-1 text-sm font-bold text-toolia-success">Validation requise</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
       </div>
-    </div>
+
+      <AutomationMotionStrip className="absolute bottom-5 z-30 sm:bottom-8" />
+    </section>
   )
 }
+
+Hero.displayName = 'Hero'

@@ -16,7 +16,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <select
         ref={ref}
         className={cn(
-          'w-full px-4 py-3 rounded-card border border-toolia-border-subtle bg-toolia-card-hover text-toolia-text transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-toolia-primary focus-visible:border-toolia-primary',
+          'w-full px-4 py-3 rounded-card border border-toolia-border-subtle bg-toolia-card text-toolia-text shadow-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-toolia-info focus-visible:border-toolia-info',
           error && 'border-toolia-danger',
           className
         )}

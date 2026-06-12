@@ -64,6 +64,19 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
+        <Script id="toolia-theme" strategy="beforeInteractive">
+          {`
+            try {
+              var storedTheme = window.localStorage.getItem('toolia_theme') || 'light';
+              var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+              var resolvedTheme = storedTheme === 'system' ? (prefersDark ? 'dark' : 'light') : storedTheme;
+              document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+              document.documentElement.dataset.theme = storedTheme;
+            } catch (error) {
+              document.documentElement.dataset.theme = 'light';
+            }
+          `}
+        </Script>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-JF98EYE0Q0"
           strategy="afterInteractive"

@@ -17,38 +17,38 @@ module.exports = {
         '4xl': '2560px',
       },
       colors: {
-        // Primary brand colors from logo
-        'toolia-primary': '#1F2A4D',
-        'toolia-primary-light': '#3A4A7F',
-        'toolia-primary-dark': '#151E38',
+        // Theme-aware Toolia color tokens.
+        'toolia-primary': 'rgb(var(--toolia-primary) / <alpha-value>)',
+        'toolia-primary-light': 'rgb(var(--toolia-primary-light) / <alpha-value>)',
+        'toolia-primary-dark': 'rgb(var(--toolia-primary-dark) / <alpha-value>)',
         
-        // Logo gradient stops
-        'toolia-gradient-dark': '#16203F',
-        'toolia-gradient-light': '#2F3D6B',
+        // Brand depth tokens.
+        'toolia-gradient-dark': 'rgb(var(--toolia-gradient-dark) / <alpha-value>)',
+        'toolia-gradient-light': 'rgb(var(--toolia-gradient-light) / <alpha-value>)',
         
         // Backgrounds
-        'toolia-bg-main': '#0D1117',
-        'toolia-bg-secondary': '#161D2D',
-        'toolia-bg-section': '#1A2238',
+        'toolia-bg-main': 'rgb(var(--toolia-bg-main) / <alpha-value>)',
+        'toolia-bg-secondary': 'rgb(var(--toolia-bg-secondary) / <alpha-value>)',
+        'toolia-bg-section': 'rgb(var(--toolia-bg-section) / <alpha-value>)',
         
         // Cards & Surfaces
-        'toolia-card': '#1A2238',
-        'toolia-card-hover': '#202E42',
+        'toolia-card': 'rgb(var(--toolia-card) / <alpha-value>)',
+        'toolia-card-hover': 'rgb(var(--toolia-card-hover) / <alpha-value>)',
         
         // Borders
-        'toolia-border-subtle': '#2A3650',
-        'toolia-border': '#384A66',
+        'toolia-border-subtle': 'rgb(var(--toolia-border-subtle) / <alpha-value>)',
+        'toolia-border': 'rgb(var(--toolia-border) / <alpha-value>)',
         
         // Text
-        'toolia-text': '#F0F2F5',
-        'toolia-text-secondary': '#8892A4',
-        'toolia-text-muted': '#5A6B7F',
+        'toolia-text': 'rgb(var(--toolia-text) / <alpha-value>)',
+        'toolia-text-secondary': 'rgb(var(--toolia-text-secondary) / <alpha-value>)',
+        'toolia-text-muted': 'rgb(var(--toolia-text-muted) / <alpha-value>)',
         
         // Status colors
-        'toolia-success': '#10B981',
-        'toolia-warning': '#F59E0B',
-        'toolia-danger': '#EF4444',
-        'toolia-info': '#3B82F6',
+        'toolia-success': 'rgb(var(--toolia-success) / <alpha-value>)',
+        'toolia-warning': 'rgb(var(--toolia-warning) / <alpha-value>)',
+        'toolia-danger': 'rgb(var(--toolia-danger) / <alpha-value>)',
+        'toolia-info': 'rgb(var(--toolia-info) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
@@ -82,10 +82,10 @@ module.exports = {
         'btn': '999px',
       },
       boxShadow: {
-        'soft': '0 4px 24px rgba(0,0,0,0.3)',
-        'btn-primary': '0 10px 30px rgba(31,42,77,0.4)',
-        'btn-hover': '0 12px 36px rgba(31,42,77,0.5)',
-        'glow-primary': '0 0 20px rgba(31,42,77,0.3)',
+        'soft': 'var(--toolia-shadow-soft)',
+        'btn-primary': 'var(--toolia-shadow-btn-primary)',
+        'btn-hover': 'var(--toolia-shadow-btn-hover)',
+        'glow-primary': 'var(--toolia-shadow-glow-primary)',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',

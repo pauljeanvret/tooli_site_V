@@ -2,6 +2,7 @@ import { Hero } from '@/components/Hero'
 import { Values } from '@/components/Values'
 import { ProductShowcase } from '@/components/ProductShowcase'
 import { HowItWorks } from '@/components/HowItWorks'
+import { ProductDemoVideo } from '@/components/ProductDemoVideo'
 import { Stats } from '@/components/Stats'
 import { Behind } from '@/components/Behind'
 import { FAQ } from '@/components/FAQ'
@@ -11,9 +12,10 @@ export default function Home() {
   return (
     <div className="bg-toolia-bg-main">
       <Hero />
-      <Values />
-      <ProductShowcase />
       <HowItWorks />
+      <Values />
+      <ProductDemoVideo />
+      <ProductShowcase />
       <Stats />
       <FAQ />
       <Behind />

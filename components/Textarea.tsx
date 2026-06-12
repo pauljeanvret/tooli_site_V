@@ -14,7 +14,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ 
     <textarea
       ref={ref}
       className={cn(
-        'w-full px-4 py-3 rounded-card border border-toolia-border-subtle bg-toolia-card-hover text-toolia-text placeholder-toolia-text-muted transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-toolia-primary focus-visible:border-toolia-primary resize-none',
+        'w-full px-4 py-3 rounded-card border border-toolia-border-subtle bg-toolia-card text-toolia-text placeholder-toolia-text-muted shadow-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-toolia-info focus-visible:border-toolia-info resize-none',
         error && 'border-toolia-danger',
         className
       )}

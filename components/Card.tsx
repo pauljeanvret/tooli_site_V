@@ -11,7 +11,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, ch
   <div
     ref={ref}
     className={cn(
-      'bg-toolia-card rounded-card border border-toolia-border-subtle p-6 md:p-7 shadow-soft transition-all duration-200 hover:bg-toolia-card-hover hover:border-toolia-primary/30',
+      'bg-toolia-card rounded-card border border-toolia-border-subtle p-6 md:p-7 shadow-soft transition-all duration-200 hover:border-toolia-primary/30',
       className
     )}
     {...props}

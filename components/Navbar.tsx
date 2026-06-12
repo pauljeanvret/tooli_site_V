@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Menu, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './Button'
+import { ThemeToggle } from './ThemeToggle'
 import { copy } from '@/lib/copy'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
@@ -135,7 +136,8 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          <div className="hidden md:block">
+          <div className="hidden items-center gap-3 md:flex">
+            {!account && <ThemeToggle compact />}
             {account ? (
               <div className="relative">
                 <button
@@ -147,10 +149,13 @@ export const Navbar: React.FC = () => {
                   {profileInitial}
                 </button>
                 {accountMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-56 overflow-hidden rounded-card border border-toolia-border-subtle bg-toolia-bg-secondary shadow-xl">
+                  <div className="absolute right-0 mt-3 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-card border border-toolia-border-subtle bg-toolia-bg-secondary shadow-xl">
                     <div className="border-b border-toolia-border-subtle px-4 py-3">
                       <p className="truncate text-sm font-semibold text-toolia-text">{account.name}</p>
                       <p className="truncate text-xs text-toolia-text-secondary">{account.email}</p>
+                    </div>
+                    <div className="border-b border-toolia-border-subtle px-4 py-3">
+                      <ThemeToggle />
                     </div>
                     <button className="block w-full px-4 py-3 text-left text-sm text-toolia-text-secondary hover:bg-toolia-card-hover hover:text-toolia-text" onClick={() => { window.location.href = '/dashboard' }}>
                       Mon espace Toolia
@@ -216,6 +221,7 @@ export const Navbar: React.FC = () => {
             transition={{ duration: 0.2 }}
           >
             <div className="flex flex-col gap-4 p-6">
+              <ThemeToggle />
               {copy.navbar.nav.map((link) => (
                 <button
                   key={link.href}

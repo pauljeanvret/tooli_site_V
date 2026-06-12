@@ -13,16 +13,16 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading = false, children, disabled, ...props }, ref) => {
-    const baseClasses = 'font-medium rounded-btn transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+    const baseClasses = 'font-medium rounded-btn transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-toolia-info/35 focus-visible:ring-offset-2 focus-visible:ring-offset-toolia-bg-main'
 
     const variants = {
       primary:
         'bg-toolia-primary hover:bg-toolia-primary-light active:bg-toolia-primary-dark text-white shadow-btn-primary hover:shadow-btn-hover hover:-translate-y-0.5',
       secondary:
-        'bg-toolia-gradient-dark/20 border border-toolia-primary/40 text-toolia-text hover:bg-toolia-gradient-dark/30 hover:border-toolia-primary/60 hover:-translate-y-0.5',
+        'bg-toolia-card border border-toolia-border-subtle text-toolia-text shadow-soft hover:bg-toolia-card-hover hover:border-toolia-primary/40 hover:-translate-y-0.5',
       outline:
-        'bg-transparent border border-toolia-border-subtle text-toolia-text hover:bg-toolia-card-hover hover:border-toolia-primary',
-      ghost: 'bg-transparent text-toolia-text hover:bg-toolia-card',
+        'bg-transparent border border-toolia-border-subtle text-toolia-text hover:bg-toolia-card-hover hover:border-toolia-primary/50',
+      ghost: 'bg-transparent text-toolia-text hover:bg-toolia-card-hover',
     }
 
     const sizes = {

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { Button } from '@/components/Button'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getTooliaClientState } from '@/lib/saas/client-navigation'
 import {
@@ -56,7 +57,7 @@ const storageKeys = {
   editMode: 'toolia_editing_automation',
 }
 
-const allowDemoMode = process.env.NODE_ENV !== 'production'
+const allowDemoMode = false
 
 type DemoSession = {
   userId: string
@@ -749,11 +750,7 @@ function StatusPill({
 }
 
 function DemoNotice() {
-  return (
-    <div className="rounded-card border border-toolia-warning/35 bg-toolia-warning/10 px-4 py-3 text-sm font-medium text-toolia-text">
-      Parcours local — aucune connexion Gmail réelle, aucun paiement réel.
-    </div>
-  )
+  return null
 }
 
 function SaasShell({
@@ -1349,6 +1346,7 @@ export function SignupClient() {
     isValidEmail(email) &&
     password.length >= 8 &&
     password === passwordConfirmation
+  const accountAlreadyExistsError = error.toLowerCase().includes('compte existe')
 
   if (checkingAccount) {
     return (
@@ -1371,7 +1369,7 @@ export function SignupClient() {
       description="Créez votre compte pour choisir votre offre, configurer Toolia et connecter Gmail en toute sécurité."
     >
       {sessionCheckMessage && (
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           <p className="text-sm font-medium text-toolia-text">{sessionCheckMessage}</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Button type="button" onClick={() => setSessionCheckMessage('')}>
@@ -1451,28 +1449,25 @@ export function SignupClient() {
             )}
             {success && <p className="text-sm font-medium text-toolia-success">{success}</p>}
             {error && <p className="text-sm font-medium text-toolia-danger">{error}</p>}
+            {accountAlreadyExistsError && (
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center rounded-btn border border-toolia-primary/35 bg-toolia-primary/10 px-4 py-3 text-sm font-semibold text-toolia-text transition hover:border-toolia-primary hover:bg-toolia-primary/15"
+              >
+                Ce compte existe déjà. Se connecter
+              </Link>
+            )}
             <Button type="submit" size="lg" className="w-full" disabled={!canCreateAccount || loading}>
               {loading ? 'Création en cours...' : 'Créer mon espace Toolia'}
             </Button>
+            <p className="text-center text-sm text-toolia-text-secondary">
+              Vous avez déjà un compte ?{' '}
+              <Link href="/login" className="font-semibold text-toolia-text underline-offset-4 hover:underline">
+                Se connecter
+              </Link>
+            </p>
           </form>
         </AppCard>
-        {allowDemoMode && (
-          <AppCard className="flex flex-col justify-between gap-6">
-            <div>
-              <StatusPill tone="warning">B. Parcours local</StatusPill>
-              <h2 className="mt-4 text-2xl font-bold text-toolia-text">Parcours de développement</h2>
-              <HelperText>
-                Parcourez le produit avec des exemples locaux, sans paiement et sans toucher à votre vrai Gmail.
-              </HelperText>
-              <div className="mt-5">
-                <DemoNotice />
-              </div>
-            </div>
-            <Button type="button" variant="outline" size="lg" onClick={() => void startFlow('demo')}>
-              Ouvrir le parcours local
-            </Button>
-          </AppCard>
-        )}
       </div>
     </SaasShell>
   )
@@ -1513,7 +1508,7 @@ export function LoginClient() {
             try {
               const supabase = getSupabaseBrowserClient()
               if (!supabase) {
-                throw new Error('Connexion Supabase indisponible. Vérifiez la configuration locale.')
+                throw new Error('Connexion Supabase indisponible. Vérifiez la configuration de l’application.')
               }
 
               const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -1731,7 +1726,7 @@ export function PricingClient() {
       title="Choisissez votre plan"
       description={
         demo
-          ? 'En parcours local, le choix du plan sert seulement à vérifier les limites de labels. Aucun paiement réel n’est effectué.'
+          ? 'Choisissez l’offre adaptée à votre configuration.'
           : 'Dans le vrai parcours client, le choix du plan redirigera ensuite vers Stripe Checkout pour finaliser le paiement.'
       }
       showDemoNotice={allowDemoMode && demo}
@@ -3089,28 +3084,6 @@ export function GmailSetupClient() {
             Toolia utilise l’autorisation Google sécurisée et ne vous demande jamais votre mot de passe Gmail.
           </p>
           {gmailError && <p className="mt-3 text-sm font-medium text-toolia-danger">{gmailError}</p>}
-          {allowDemoMode && demo && (
-            <Button
-              type="button"
-              size="lg"
-              variant="outline"
-              className="mt-4 w-full"
-              onClick={() => {
-                writeStorage(storageKeys.gmail, {
-                  connected: false,
-                  mode: 'test',
-                  passwordRequestedByToolia: false,
-                })
-                if (fromDashboard) {
-                  router.push('/dashboard')
-                  return
-                }
-                router.push('/onboarding/profile')
-              }}
-            >
-              Continuer le parcours local
-            </Button>
-          )}
         </AppCard>
         <AppCard>
           <div className="flex items-start gap-4">
@@ -4387,7 +4360,7 @@ export function DashboardClient() {
     >
       {allowDemoMode && testActive && (
         <div className="rounded-card border border-toolia-info/30 bg-toolia-info/10 px-4 py-3 text-sm font-medium text-toolia-text">
-          Parcours local : aucune action réelle n’est effectuée.
+          Cette configuration est inactive tant que Gmail et l’offre ne sont pas validés.
         </div>
       )}
 
@@ -4413,7 +4386,7 @@ export function DashboardClient() {
       <div>
         <p className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-toolia-info">Connexions et pilotage</p>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           <Mail className="mb-3 text-toolia-info" />
           <h2 className="text-xl font-bold text-toolia-text">Gmail</h2>
           <StatusPill tone={state.gmailConnected && !gmailNeedsScopeUpgrade ? 'success' : 'warning'}>
@@ -4430,7 +4403,7 @@ export function DashboardClient() {
             Connectez votre boîte Gmail pour que Toolia puisse créer les labels et préparer les brouillons.
           </p>
           {state.gmailConnected ? (
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-auto flex flex-col gap-2 pt-4">
               {gmailNeedsScopeUpgrade && (
                 <Button
                   type="button"
@@ -4456,7 +4429,7 @@ export function DashboardClient() {
             <Button
               type="button"
               variant="outline"
-              className="mt-4"
+              className="mt-auto"
               onClick={connectGmailFromDashboard}
               disabled={gmailBusy}
               isLoading={gmailBusy}
@@ -4466,18 +4439,18 @@ export function DashboardClient() {
           )}
           {gmailResult && <p className="mt-3 text-sm text-toolia-text-secondary">{gmailResult}</p>}
         </AppCard>
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           <Gauge className="mb-3 text-toolia-info" />
           <h2 className="text-xl font-bold text-toolia-text">Plan</h2>
           <p className="mt-1 font-semibold text-toolia-text">{plan?.name || 'Offre à choisir'}</p>
           <p className="mt-3 text-sm text-toolia-text-secondary">
             Votre offre définit le nombre de labels et les options disponibles.
           </p>
-          <div className="mt-3">
+          <div className="mt-auto pt-4">
             <PlanUpgradeButton plan={plan} subscriptionStatus={state?.subscriptionStatus} billing={billing} />
           </div>
         </AppCard>
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           {automationRunning ? <Play className="mb-3 text-toolia-success" /> : <Pause className="mb-3 text-toolia-warning" />}
           <h2 className="text-xl font-bold text-toolia-text">Automatisation</h2>
           <StatusPill tone={automationRunning ? 'success' : 'warning'}>
@@ -4486,7 +4459,7 @@ export function DashboardClient() {
           <p className="mt-3 text-sm text-toolia-text-secondary">
             Toolia applique vos règles sur les emails entrants.
           </p>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="mt-auto flex flex-col gap-2 pt-4">
             <Button type="button" variant="outline" onClick={toggleAutomation} disabled={busy} isLoading={busy}>
               {automationRunning ? 'Mettre en pause' : 'Reprendre'}
             </Button>
@@ -4498,7 +4471,7 @@ export function DashboardClient() {
             </Link>
           </div>
         </AppCard>
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           <PencilLine className="mb-3 text-toolia-info" />
           <h2 className="text-xl font-bold text-toolia-text">Brouillons préparés</h2>
           <p className="text-2xl font-bold text-toolia-text">{draftCount}</p>
@@ -4506,7 +4479,7 @@ export function DashboardClient() {
             Réponses préparées dans Gmail, jamais envoyées sans validation.
           </p>
         </AppCard>
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           <Settings className="mb-3 text-toolia-info" />
           <h2 className="text-xl font-bold text-toolia-text">Labels créés</h2>
           <p className="text-2xl font-bold text-toolia-text">{state.labels.length}</p>
@@ -4514,7 +4487,7 @@ export function DashboardClient() {
             Catégories que Toolia prépare dans votre Gmail.
           </p>
         </AppCard>
-        <AppCard>
+        <AppCard className="flex h-full flex-col">
           <Bell className="mb-3 text-toolia-info" />
           <h2 className="text-xl font-bold text-toolia-text">Alertes Telegram</h2>
           {!telegramAllowedByPlan ? (
@@ -4525,7 +4498,7 @@ export function DashboardClient() {
               </p>
               <Link
                 href="/pricing"
-                className="mt-4 inline-flex text-sm font-semibold text-toolia-text underline underline-offset-4"
+                className="mt-auto inline-flex pt-4 text-sm font-semibold text-toolia-text underline underline-offset-4"
               >
                 Voir les offres avec Telegram
               </Link>
@@ -4541,7 +4514,7 @@ export function DashboardClient() {
                   : 'Connectez Telegram pour recevoir les alertes importantes. Vous n’avez rien à configurer manuellement.'}
               </p>
               {telegramState?.connected ? (
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-auto flex flex-wrap gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={testTelegram} disabled={telegramBusy} isLoading={telegramBusy}>
                     <Send size={16} />
                     Vérifier Telegram
@@ -4552,7 +4525,7 @@ export function DashboardClient() {
                 </div>
               ) : (
                 <>
-                  <Button type="button" variant="outline" className="mt-4" onClick={startTelegramConnection} disabled={telegramBusy} isLoading={telegramBusy}>
+                  <Button type="button" variant="outline" className="mt-auto" onClick={startTelegramConnection} disabled={telegramBusy} isLoading={telegramBusy}>
                     <Send size={16} />
                     Connecter Telegram
                   </Button>
@@ -4629,8 +4602,8 @@ export function DashboardClient() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-      <AppCard>
+      <div className="grid gap-6 xl:grid-cols-2 xl:items-stretch">
+      <AppCard className="flex h-full flex-col">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-2xl font-bold text-toolia-text">Créer un brouillon IA</h2>
@@ -4645,7 +4618,7 @@ export function DashboardClient() {
           )}
         </div>
         <label className="mt-5 block">
-          <span className="text-sm font-semibold text-toolia-text">Email reçu à simuler</span>
+          <span className="text-sm font-semibold text-toolia-text">Email reçu</span>
           <textarea
             className="mt-2 min-h-36 w-full rounded-card border border-toolia-border bg-toolia-bg-secondary px-4 py-3 text-sm leading-6 text-toolia-text shadow-inner outline-none transition placeholder:text-toolia-text-muted focus:border-toolia-info focus:ring-2 focus:ring-toolia-info/30"
             value={incomingEmail}
@@ -4664,7 +4637,7 @@ export function DashboardClient() {
           )}
           {state.gmailConnected && !gmailNeedsModifyScope && !aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
-              Clé IA manquante. Ajoutez OPENROUTER_API_KEY dans .env.local.
+              Configuration IA indisponible pour le moment.
             </p>
           )}
           {draftQuotaReached && state.gmailConnected && !gmailNeedsModifyScope && aiStatus?.configured && (
@@ -4706,7 +4679,7 @@ export function DashboardClient() {
         </div>
       </AppCard>
 
-      <AppCard>
+      <AppCard className="flex h-full flex-col">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-2xl font-bold text-toolia-text">Apprendre mon style d’écriture</h2>
@@ -4721,12 +4694,12 @@ export function DashboardClient() {
             </Button>
           )}
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <StatusPill tone="info">Analyse limitée aux emails envoyés récents.</StatusPill>
           <StatusPill tone="success">Aucun email n’est envoyé.</StatusPill>
           <StatusPill tone="info">Seul un résumé de style est gardé.</StatusPill>
         </div>
-        <div className="mt-5 flex flex-col gap-3">
+        <div className="mt-auto flex flex-col gap-3 pt-5">
           {!state.gmailConnected && (
             <p className="text-sm font-medium text-toolia-text-secondary">Connectez Gmail pour analyser votre style.</p>
           )}
@@ -4735,7 +4708,7 @@ export function DashboardClient() {
           )}
           {state.gmailConnected && !gmailNeedsModifyScope && !aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
-              Clé IA manquante. Ajoutez OPENROUTER_API_KEY dans .env.local.
+              Configuration IA indisponible pour le moment.
             </p>
           )}
           {styleQuotaReached && state.gmailConnected && !gmailNeedsModifyScope && aiStatus?.configured && (
@@ -4805,23 +4778,24 @@ export function DashboardClient() {
           )}
           {state.gmailConnected && !gmailNeedsModifyScope && !aiStatus?.configured && (
             <p className="text-sm font-medium text-toolia-warning">
-              Clé IA manquante. Ajoutez OPENROUTER_API_KEY dans .env.local.
+              Configuration IA indisponible pour le moment.
             </p>
           )}
-          <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+          <div className="rounded-[24px] border border-toolia-border-subtle bg-toolia-bg-secondary/45 p-3">
+          <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)] md:items-end">
             <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
               Analyser des emails récents
               <select
                 value={classificationLimit}
                 onChange={(event) => setClassificationLimit(Number(event.target.value) as 5 | 10 | 20)}
-                className="rounded-card border border-toolia-border-subtle bg-toolia-bg-secondary px-3 py-2 text-toolia-text outline-none focus:border-toolia-info"
+                className="rounded-card border border-toolia-border-subtle bg-toolia-card px-3 py-2 text-toolia-text outline-none focus:border-toolia-info"
               >
                 <option value={5}>5 derniers emails</option>
                 <option value={10}>10 derniers emails</option>
                 <option value={20}>20 derniers emails</option>
               </select>
             </label>
-            <label className="flex items-end gap-3 rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-sm font-medium text-toolia-text">
+            <label className="flex min-h-[44px] items-center gap-3 rounded-card border border-toolia-border-subtle bg-toolia-card px-4 py-2.5 text-sm font-medium text-toolia-text">
               <input
                 type="checkbox"
                 checked={includeAlreadyAnalyzed}
@@ -4830,6 +4804,7 @@ export function DashboardClient() {
               />
               Inclure les emails déjà analysés
             </label>
+          </div>
           </div>
           <p className="text-sm text-toolia-text-secondary">
             Cette action utilise votre quota d’emails traités.
@@ -5120,6 +5095,15 @@ export function SettingsClient() {
               <NextLink href="/onboarding">Créer une configuration</NextLink>
             </div>
           </AppCard>
+          <AppCard>
+            <h2 className="text-2xl font-bold text-toolia-text">Apparence</h2>
+            <p className="mt-3 text-sm text-toolia-text-secondary">
+              Choisissez le thème de l’interface Toolia sur cet appareil.
+            </p>
+            <div className="mt-5">
+              <ThemeToggle />
+            </div>
+          </AppCard>
           {session?.mode === 'account' && (
             <AppCard id="delete-account">
               <h2 className="text-2xl font-bold text-toolia-text">Supprimer mon compte</h2>
@@ -5165,6 +5149,15 @@ export function SettingsClient() {
               <Link href="/dashboard" className="text-sm font-semibold text-toolia-text-secondary hover:text-toolia-text">
                 Retour dashboard
               </Link>
+            </div>
+          </AppCard>
+          <AppCard>
+            <h2 className="text-2xl font-bold text-toolia-text">Apparence</h2>
+            <p className="mt-3 text-sm text-toolia-text-secondary">
+              Passez en mode clair, sombre ou suivez le réglage système de votre appareil.
+            </p>
+            <div className="mt-5">
+              <ThemeToggle />
             </div>
           </AppCard>
           <AppCard>

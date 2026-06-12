@@ -2,8 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Mail, Clock, Headphones } from 'lucide-react'
-import { Card } from './Card'
+import { Clock, Headphones, Mail, TrendingUp } from 'lucide-react'
 import { Section } from './Section'
 import { ScrollReveal } from './ScrollReveal'
 import { copy } from '@/lib/copy'
@@ -15,38 +14,47 @@ const iconMap = {
   Headphones,
 }
 
+const tileClasses = [
+  'lg:col-span-5 lg:row-span-2',
+  'lg:col-span-4',
+  'lg:col-span-3',
+  'lg:col-span-7',
+]
+
 export const Stats: React.FC = () => {
   return (
-    <Section id="stats">
-      <div className="flex flex-col gap-10 md:gap-14">
-        {/* Title */}
+    <Section id="stats" className="bg-toolia-bg-secondary/65">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <ScrollReveal>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center">
+          <h2 className="mx-auto max-w-4xl text-center text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
             {copy.stats.title}
           </h2>
         </ScrollReveal>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-12 lg:grid-rows-2">
           {copy.stats.items.map((stat, idx) => {
             const Icon = iconMap[stat.icon as keyof typeof iconMap]
             return (
-              <ScrollReveal key={idx} delay={idx * 0.1}>
+              <ScrollReveal key={stat.value} delay={idx * 0.08} className={tileClasses[idx]}>
                 <motion.div
-                  whileHover={{ y: -2 }}
+                  className={`group relative flex h-full min-h-[150px] overflow-hidden rounded-[30px] border border-toolia-border-subtle bg-toolia-card p-6 shadow-soft ${idx === 0 ? 'lg:min-h-[318px] lg:p-8' : ''}`}
+                  whileHover={{ y: -3 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <Card className="text-center flex flex-col items-center gap-4">
-                    <Icon size={32} className="text-toolia-primary" />
+                  <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-toolia-primary/7 transition group-hover:scale-125" />
+                  <div className="relative z-10 flex w-full flex-col justify-between gap-5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-toolia-bg-secondary text-toolia-primary">
+                      <Icon size={idx === 0 ? 30 : 24} />
+                    </div>
                     <div>
-                      <p className="text-3xl md:text-4xl font-bold text-toolia-text">
+                      <p className={`${idx === 0 ? 'text-5xl md:text-6xl' : 'text-3xl md:text-4xl'} font-bold leading-none text-toolia-text`}>
                         {stat.value}
                       </p>
-                      <p className="text-sm text-toolia-text-secondary mt-1">
+                      <p className="mt-2 text-sm leading-5 text-toolia-text-secondary">
                         {stat.label}
                       </p>
                     </div>
-                  </Card>
+                  </div>
                 </motion.div>
               </ScrollReveal>
             )

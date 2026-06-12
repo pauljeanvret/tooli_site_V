@@ -14,7 +14,7 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
     const baseClasses = 'inline-flex items-center font-medium rounded-full'
 
     const variants = {
-      primary: 'bg-toolia-primary/15 border border-toolia-primary/40 text-toolia-primary-light',
+      primary: 'bg-toolia-primary/10 border border-toolia-primary/25 text-toolia-primary',
       success: 'bg-toolia-success/15 border border-toolia-success/40 text-toolia-success',
       warning: 'bg-toolia-warning/15 border border-toolia-warning/40 text-toolia-warning',
       danger: 'bg-toolia-danger/15 border border-toolia-danger/40 text-toolia-danger',
