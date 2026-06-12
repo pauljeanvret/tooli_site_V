@@ -148,6 +148,8 @@ type TelegramConnectionState = {
 
 type TelegramConnectState = {
   botLink: string
+  botUsername?: string
+  startCommand?: string
   qrCodeDataUrl: string
   expiresAt: string
 }
@@ -3942,10 +3944,12 @@ export function DashboardClient() {
 
       setTelegramConnect({
         botLink: data.botLink,
+        botUsername: data.botUsername,
+        startCommand: data.startCommand,
         qrCodeDataUrl: data.qrCodeDataUrl,
         expiresAt: data.expiresAt,
       })
-      setTelegramResult('Ouvrez Telegram puis appuyez sur Démarrer dans le bot Toolia.')
+      setTelegramResult('Ouvrez Telegram puis envoyez la commande /start préremplie. Si elle n’apparaît pas, copiez la commande affichée.')
 
       ;[1, 2, 3, 4, 5, 6, 7, 8].forEach((attempt) => {
         window.setTimeout(() => {
@@ -3954,7 +3958,7 @@ export function DashboardClient() {
               setTelegramResult('Telegram connecté.')
               setTelegramConnect(null)
             } else if (attempt === 8) {
-              setTelegramResult('Connexion en attente. Appuyez sur Démarrer dans Telegram, puis actualisez le tableau de bord.')
+              setTelegramResult('Connexion en attente. Envoyez la commande /start affichée dans Telegram, puis actualisez le tableau de bord.')
             }
           })
         }, attempt * 3000)
@@ -4539,6 +4543,28 @@ export function DashboardClient() {
                       >
                         Ouvrir Telegram
                       </a>
+                      {telegramConnect.startCommand && (
+                        <div className="mt-4 rounded-card border border-toolia-border bg-toolia-surface p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-toolia-text-muted">
+                            Commande de connexion
+                          </p>
+                          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <code className="min-w-0 flex-1 overflow-x-auto rounded-full border border-toolia-border bg-toolia-card px-3 py-2 text-xs font-semibold text-toolia-text">
+                              {telegramConnect.startCommand}
+                            </code>
+                            <button
+                              type="button"
+                              className="rounded-full border border-toolia-border px-3 py-2 text-xs font-semibold text-toolia-text transition hover:border-toolia-primary"
+                              onClick={() => {
+                                void navigator.clipboard?.writeText(telegramConnect.startCommand || '')
+                                setTelegramResult('Commande Telegram copiée. Collez-la dans le bot Toolia si elle n’est pas préremplie.')
+                              }}
+                            >
+                              Copier
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
                         <img
                           src={telegramConnect.qrCodeDataUrl}
@@ -4548,7 +4574,7 @@ export function DashboardClient() {
                         <ol className="space-y-2 text-sm text-toolia-text-secondary">
                           <li>1. Installez Telegram sur votre téléphone si ce n’est pas déjà fait.</li>
                           <li>2. Scannez le QR code ou cliquez sur le bouton.</li>
-                          <li>3. Appuyez sur Démarrer dans le bot Toolia.</li>
+                          <li>3. Envoyez la commande /start préremplie. Si elle n’apparaît pas, copiez la commande affichée ci-dessus.</li>
                         </ol>
                       </div>
                       <div className="mt-4 space-y-2 text-xs text-toolia-text-secondary">

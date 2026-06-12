@@ -168,6 +168,11 @@ export async function disconnectTelegram(userId: string) {
   const { error } = await supabase
     .from('telegram_connections')
     .update({
+      telegram_chat_id: null,
+      chat_id_encrypted: null,
+      telegram_username: null,
+      username: null,
+      telegram_connected_at: null,
       telegram_enabled: false,
       enabled: false,
       telegram_connection_status: 'disconnected',
