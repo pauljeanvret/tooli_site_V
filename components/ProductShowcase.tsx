@@ -47,11 +47,11 @@ export const ProductShowcase: React.FC = () => {
   }
 
   return (
-    <Section id="pricing">
-      <div className="flex flex-col gap-10 md:gap-14">
+    <Section id="pricing" className="max-md:py-10">
+      <div className="flex flex-col gap-7 md:gap-14">
         <ScrollReveal>
           <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center">
-            <h2 className="text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
+            <h2 className="text-[2rem] font-bold leading-tight text-toolia-text md:text-4xl lg:text-5xl">
               {copy.pricing.title}
             </h2>
             <p className="text-sm leading-6 text-toolia-text-secondary md:text-base">
@@ -60,12 +60,12 @@ export const ProductShowcase: React.FC = () => {
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3 md:gap-6">
           {copy.pricing.plans.map((plan, idx) => (
             <ScrollReveal key={idx} delay={idx * 0.15}>
               <motion.div className="h-full" whileHover={{ y: -4 }} transition={{ duration: 0.22 }}>
                 <Card
-                  className={`group relative flex h-full flex-col gap-5 overflow-hidden ${
+                  className={`group relative flex h-full flex-col gap-4 overflow-hidden max-md:p-5 md:gap-5 ${
                     plan.featured ? 'border-toolia-primary shadow-lg ring-2 ring-toolia-primary/10 lg:scale-[1.035]' : ''
                   }`}
                 >
@@ -82,14 +82,14 @@ export const ProductShowcase: React.FC = () => {
                     <p className="text-sm leading-6 text-toolia-text-secondary">{plan.description}</p>
                   </div>
 
-                  <div className="rounded-2xl border border-toolia-border-subtle bg-toolia-bg-secondary/70 p-4">
+                  <div className="rounded-2xl border border-toolia-border-subtle bg-toolia-bg-secondary/70 p-3 md:p-4">
                     <span className="text-xs font-semibold uppercase tracking-[0.12em] text-toolia-text-muted">Pour qui</span>
                     <p className="mt-2 text-sm font-semibold leading-6 text-toolia-text">
                       {audiences[idx]}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-toolia-primary/5 p-4">
+                  <div className="rounded-2xl bg-toolia-primary/5 p-3 md:p-4">
                     <div>
                       <span className="mb-1 block text-xs font-medium text-toolia-text-secondary">{plan.setupLabel}</span>
                       <span className="text-lg font-bold text-toolia-text">{plan.setup}</span>
@@ -103,7 +103,7 @@ export const ProductShowcase: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex-1 space-y-3 py-2">
+                  <div className="flex-1 space-y-2.5 py-1 md:space-y-3 md:py-2">
                     {plan.features.map((feature, featureIdx) => (
                       <motion.div
                         key={featureIdx}

@@ -23,10 +23,10 @@ const tileClasses = [
 
 export const Stats: React.FC = () => {
   return (
-    <Section id="stats" className="bg-toolia-bg-secondary/65">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10">
+    <Section id="stats" className="bg-toolia-bg-secondary/65 max-md:py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-7 md:gap-10">
         <ScrollReveal>
-          <h2 className="mx-auto max-w-4xl text-center text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
+          <h2 className="mx-auto max-w-4xl text-center text-[2rem] font-bold leading-tight text-toolia-text md:text-4xl lg:text-5xl">
             {copy.stats.title}
           </h2>
         </ScrollReveal>
@@ -37,17 +37,17 @@ export const Stats: React.FC = () => {
             return (
               <ScrollReveal key={stat.value} delay={idx * 0.08} className={tileClasses[idx]}>
                 <motion.div
-                  className={`group relative flex h-full min-h-[150px] overflow-hidden rounded-[30px] border border-toolia-border-subtle bg-toolia-card p-6 shadow-soft ${idx === 0 ? 'lg:min-h-[318px] lg:p-8' : ''}`}
+                  className={`group relative flex h-full min-h-[124px] overflow-hidden rounded-[24px] border border-toolia-border-subtle bg-toolia-card p-4 shadow-soft md:min-h-[150px] md:rounded-[30px] md:p-6 ${idx === 0 ? 'lg:min-h-[318px] lg:p-8' : ''}`}
                   whileHover={{ y: -3 }}
                   transition={{ duration: 0.2 }}
                 >
                   <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-toolia-primary/7 transition group-hover:scale-125" />
                   <div className="relative z-10 flex w-full flex-col justify-between gap-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-toolia-bg-secondary text-toolia-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-toolia-bg-secondary text-toolia-primary md:h-12 md:w-12">
                       <Icon size={idx === 0 ? 30 : 24} />
                     </div>
                     <div>
-                      <p className={`${idx === 0 ? 'text-5xl md:text-6xl' : 'text-3xl md:text-4xl'} font-bold leading-none text-toolia-text`}>
+                      <p className={`${idx === 0 ? 'text-4xl md:text-6xl' : 'text-3xl md:text-4xl'} font-bold leading-none text-toolia-text`}>
                         {stat.value}
                       </p>
                       <p className="mt-2 text-sm leading-5 text-toolia-text-secondary">
