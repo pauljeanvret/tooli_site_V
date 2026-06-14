@@ -5,9 +5,18 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { copy } from '@/lib/copy'
+import { trackEvent } from '@/lib/analytics'
 
 export const Footer: React.FC = () => {
   const handleSmoothScroll = (href: string) => {
+    const link = copy.footer.links.find((item) => item.href === href)
+    if (link) {
+      trackEvent('cta_click', {
+        cta_location: 'footer',
+        cta_label: link.label,
+      })
+    }
+
     const target = document.querySelector(href)
     if (target) {
       target.scrollIntoView({ behavior: 'smooth' })
@@ -61,6 +70,12 @@ export const Footer: React.FC = () => {
                     <Link
                       key={link.href}
                       href={link.href}
+                      onClick={() =>
+                        trackEvent('cta_click', {
+                          cta_location: 'footer',
+                          cta_label: link.label,
+                        })
+                      }
                       className="block text-sm text-toolia-text-secondary transition-colors hover:text-toolia-text"
                     >
                       {link.label}

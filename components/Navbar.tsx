@@ -8,6 +8,7 @@ import { Button } from './Button'
 import { ThemeToggle } from './ThemeToggle'
 import { copy } from '@/lib/copy'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics'
 
 type NavbarAccount = {
   name: string
@@ -67,6 +68,13 @@ export const Navbar: React.FC = () => {
   const profileInitial = (account?.name || account?.email || 'T').slice(0, 1).toUpperCase()
 
   const handleSmoothScroll = (href: string) => {
+    const link = copy.navbar.nav.find((item) => item.href === href)
+    if (link) {
+      trackEvent('cta_click', {
+        cta_location: 'navbar',
+        cta_label: link.label,
+      })
+    }
     const target = document.querySelector(href)
     if (target) {
       target.scrollIntoView({ behavior: 'smooth' })
@@ -124,6 +132,9 @@ export const Navbar: React.FC = () => {
             {!account && (
               <motion.button
                 onClick={() => {
+                  trackEvent('login_started', {
+                    cta_location: 'navbar',
+                  })
                   window.location.href = '/login'
                 }}
                 className="relative text-sm font-medium text-toolia-text-secondary transition-colors duration-200 hover:text-toolia-text"
@@ -180,6 +191,10 @@ export const Navbar: React.FC = () => {
                 variant="primary"
                 size="sm"
                 onClick={() => {
+                  trackEvent('cta_click', {
+                    cta_location: 'navbar',
+                    cta_label: copy.navbar.cta,
+                  })
                   window.location.href = '/signup'
                 }}
                 className="whitespace-nowrap"
@@ -193,6 +208,10 @@ export const Navbar: React.FC = () => {
             <button
               type="button"
               onClick={() => {
+                trackEvent('cta_click', {
+                  cta_location: 'navbar',
+                  cta_label: account ? 'Espace' : 'Commencer',
+                })
                 setIsOpen(false)
                 window.location.href = account ? '/dashboard' : '/signup'
               }}
@@ -275,6 +294,9 @@ export const Navbar: React.FC = () => {
                   <div className="rounded-[24px] border border-white/70 bg-white/95 p-3 shadow-[0_18px_52px_rgba(2,6,23,0.2)] backdrop-blur-2xl dark:border-white/70 dark:bg-white/95">
                     <button
                       onClick={() => {
+                        trackEvent('login_started', {
+                          cta_location: 'navbar',
+                        })
                         window.location.href = '/login'
                       }}
                       className="mb-3 w-full rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90"
@@ -285,6 +307,10 @@ export const Navbar: React.FC = () => {
                       variant="primary"
                       size="md"
                       onClick={() => {
+                        trackEvent('cta_click', {
+                          cta_location: 'navbar',
+                          cta_label: copy.navbar.cta,
+                        })
                         window.location.href = '/signup'
                       }}
                       className="w-full"

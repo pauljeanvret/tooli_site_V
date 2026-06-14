@@ -10,6 +10,7 @@ import { Section } from './Section'
 import { ScrollReveal } from './ScrollReveal'
 import { copy } from '@/lib/copy'
 import { getTooliaClientState } from '@/lib/saas/client-navigation'
+import { trackEvent } from '@/lib/analytics'
 
 const audiences = [
   'Indépendants avec une boîte Gmail à reprendre en main.',
@@ -17,9 +18,25 @@ const audiences = [
   'Volumes élevés, suivi plus rapide et personnalisation avancée.',
 ]
 
+const pricingAnalytics = [
+  { plan: 'starter', setup_price: 49, monthly_price: 29 },
+  { plan: 'pro', setup_price: 99, monthly_price: 69 },
+  { plan: 'premium', setup_price: 199, monthly_price: 129 },
+] as const
+
 export const ProductShowcase: React.FC = () => {
   const startWithPlan = async (idx: number) => {
     const state = await getTooliaClientState()
+    const analytics = pricingAnalytics[idx]
+    if (analytics) {
+      trackEvent('cta_click', {
+        cta_location: 'pricing',
+        cta_label: 'Commencer avec cette offre',
+        ...analytics,
+      })
+      trackEvent('plan_selected', analytics)
+    }
+
     if (state.isLoggedIn && state.hasAutomation) {
       window.location.href = '/dashboard'
       return

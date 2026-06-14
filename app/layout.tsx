@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Manrope } from 'next/font/google'
 import Script from 'next/script'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
@@ -22,6 +23,7 @@ const siteTitle = 'Toolia — Votre boîte mail se gère toute seule'
 const siteDescription =
   'Toolia trie vos emails Gmail, applique les bons labels et prépare vos brouillons de réponse. Vous gardez toujours le contrôle.'
 const logoUrl = '/profile/logo_white_transparent.png'
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -90,18 +92,22 @@ export default function RootLayout({
             }
           `}
         </Script>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-JF98EYE0Q0"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-JF98EYE0Q0');
-          `}
-        </Script>
+        {gaMeasurementId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaMeasurementId}');
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="bg-toolia-bg-main text-toolia-text">
         <Navbar />
@@ -109,6 +115,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <Analytics />
       </body>
     </html>
   )

@@ -6,6 +6,7 @@ import { Button } from './Button'
 import { AutomationMotionStrip } from './AutomationMotionStrip'
 import { copy } from '@/lib/copy'
 import { getTooliaClientState, routeToTooliaStart } from '@/lib/saas/client-navigation'
+import { trackEvent } from '@/lib/analytics'
 
 const heroGroup = {
   hidden: {},
@@ -105,13 +106,28 @@ export const Hero: React.FC = () => {
               variant="primary"
               size="lg"
               onClick={() => {
+                trackEvent('cta_click', {
+                  cta_location: 'hero',
+                  cta_label: primaryCta,
+                })
                 void routeToTooliaStart()
               }}
               className="w-full sm:w-auto"
             >
               {primaryCta}
             </Button>
-            <Button variant="secondary" size="lg" onClick={() => handleSmoothScroll('#how')} className="w-full sm:w-auto">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => {
+                trackEvent('cta_click', {
+                  cta_location: 'hero',
+                  cta_label: copy.hero.cta2,
+                })
+                handleSmoothScroll('#how')
+              }}
+              className="w-full sm:w-auto"
+            >
               {copy.hero.cta2}
             </Button>
           </motion.div>

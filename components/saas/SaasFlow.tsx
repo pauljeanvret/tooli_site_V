@@ -44,6 +44,7 @@ import {
   type PlanLimits,
 } from '@/lib/saas/plan-config'
 import { findDraftConsistencyIssues } from '@/lib/saas/profile-consistency'
+import { trackEvent } from '@/lib/analytics'
 
 const storageKeys = {
   session: 'toolia_demo_session',
@@ -426,6 +427,28 @@ const planOptions: PlanOption[] = rawPlanOptions.map((plan) => {
     features: ['25 catégories personnalisées', '10 000 emails traités/mois', '1 200 brouillons IA/mois', 'Telegram avancé inclus', 'Traitement automatique toutes les 5 min minimum'],
   }
 })
+
+const analyticsPlanDetails: Record<'starter' | 'pro' | 'premium', { setup_price: number; monthly_price: number }> = {
+  starter: { setup_price: 49, monthly_price: 29 },
+  pro: { setup_price: 99, monthly_price: 69 },
+  premium: { setup_price: 199, monthly_price: 129 },
+}
+
+const onboardingStepAnalytics = ['objective', 'context', 'volume', 'labels', 'actions'] as const
+
+function planAnalyticsParams(plan: Pick<PlanOption, 'id'> | null | undefined) {
+  const planId = plan?.id === 'essential' ? 'starter' : plan?.id
+  if (planId !== 'starter' && planId !== 'pro' && planId !== 'premium') return {}
+
+  return {
+    plan: planId,
+    ...analyticsPlanDetails[planId],
+  }
+}
+
+function customLabelCount(categories: Array<{ key: string }>) {
+  return categories.filter((category) => category.key.startsWith('custom_')).length
+}
 
 function normalizePersistedPlan(plan: Partial<PlanOption> | null | undefined) {
   if (!plan?.id) return null
@@ -842,16 +865,16 @@ function HelperText({ children }: { children: React.ReactNode }) {
 }
 
 const authShellClass =
-  'relative isolate overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_24px_90px_rgba(22,34,74,0.10)] backdrop-blur-xl dark:border-toolia-border-subtle dark:bg-slate-900/70 sm:p-6 lg:p-10'
+  'toolia-auth-shell relative isolate overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_24px_90px_rgba(22,34,74,0.10)] backdrop-blur-xl dark:border-toolia-border-subtle dark:bg-slate-900/70 sm:p-6 lg:p-10'
 const authPanelClass =
-  'rounded-[28px] border border-slate-200/90 bg-white/95 p-5 shadow-[0_22px_70px_rgba(22,34,74,0.12)] dark:border-toolia-border-subtle dark:bg-slate-950/60 sm:p-7 md:p-8'
+  'toolia-auth-panel rounded-[28px] border border-slate-200/90 bg-white/95 p-5 shadow-[0_22px_70px_rgba(22,34,74,0.12)] dark:border-toolia-border-subtle dark:bg-slate-950/60 sm:p-7 md:p-8'
 const authInputClass =
-  'rounded-[18px] border border-slate-200 bg-white/90 px-4 py-3.5 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-toolia-border-subtle dark:bg-white/5 dark:text-toolia-text dark:placeholder:text-toolia-text-muted/75 dark:focus:border-toolia-primary dark:focus:bg-toolia-card dark:focus:ring-toolia-info/10'
+  'toolia-auth-input rounded-[18px] border border-slate-200 bg-white/90 px-4 py-3.5 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-toolia-border-subtle dark:bg-white/5 dark:text-toolia-text dark:placeholder:text-toolia-text-muted/75 dark:focus:border-toolia-primary dark:focus:bg-toolia-card dark:focus:ring-toolia-info/10'
 const authLabelClass = 'flex flex-col gap-2 text-sm font-medium text-slate-900 dark:text-toolia-text'
 const authMutedCardClass =
-  'flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-3 text-slate-700 dark:border-toolia-border-subtle dark:bg-white/5 dark:text-toolia-text-secondary'
+  'toolia-auth-muted-card flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-3 text-slate-700 dark:border-toolia-border-subtle dark:bg-white/5 dark:text-toolia-text-secondary'
 const authLinkClass =
-  'font-semibold text-blue-700 underline-offset-4 transition hover:text-blue-900 hover:underline dark:text-toolia-text dark:hover:text-white'
+  'toolia-auth-link font-semibold text-blue-700 underline-offset-4 transition hover:text-blue-900 hover:underline dark:text-toolia-text dark:hover:text-white'
 const authDisabledButtonClass =
   'mt-1 w-full disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100 dark:disabled:bg-slate-700 dark:disabled:text-white dark:disabled:opacity-70'
 
@@ -1288,6 +1311,7 @@ function ActionToggles({
 
 export function SignupClient() {
   const router = useRouter()
+  const signupStartedTracked = useRef(false)
   const [checkingAccount, setCheckingAccount] = useState(true)
   const [sessionCheckMessage, setSessionCheckMessage] = useState('')
   const [name, setName] = useState('')
@@ -1302,6 +1326,11 @@ export function SignupClient() {
   useEffect(() => {
     let active = true
     let timedOut = false
+
+    if (!signupStartedTracked.current) {
+      signupStartedTracked.current = true
+      trackEvent('signup_started')
+    }
 
     const selectedPlanId = getPlanIdFromUrl()
     if (selectedPlanId) {
@@ -1382,6 +1411,7 @@ export function SignupClient() {
         await supabase?.auth.setSession(data.authSession)
       }
 
+      trackEvent('signup_completed')
       writeStorage(storageKeys.session, data.session)
       if (data.emailConfirmationRequired) {
         setSuccess(data.message || 'Compte créé. Vérifiez votre email si Supabase demande une confirmation.')
@@ -1487,7 +1517,13 @@ export function SignupClient() {
             className="flex flex-col gap-5"
             onSubmit={(event) => {
               event.preventDefault()
-              if (canCreateAccount) void startFlow('account')
+              if (canCreateAccount) {
+                trackEvent('cta_click', {
+                  cta_location: 'signup',
+                  cta_label: 'Créer mon espace Toolia',
+                })
+                void startFlow('account')
+              }
             }}
           >
             <label className={authLabelClass}>
@@ -1643,6 +1679,7 @@ export function LoginClient() {
               return
             }
 
+            trackEvent('login_started')
             setLoading(true)
             setError('')
 
@@ -1673,6 +1710,7 @@ export function LoginClient() {
 
               await syncTooliaProfile(session)
               writeStorage(storageKeys.session, session)
+              trackEvent('login_completed')
               router.push('/dashboard')
             } catch (loginError) {
               setError(loginError instanceof Error ? loginError.message : 'Connexion impossible.')
@@ -1762,6 +1800,7 @@ export function ForgotPasswordClient() {
       return
     }
 
+    trackEvent('forgot_password_started')
     setLoading(true)
 
     try {
@@ -1954,6 +1993,7 @@ export function ResetPasswordClient() {
       setSuccess('Votre mot de passe a été modifié.')
       setPassword('')
       setPasswordConfirmation('')
+      trackEvent('password_reset_completed')
       await supabase.auth.signOut()
       window.setTimeout(() => router.push('/login?password=updated'), 1800)
     } catch (error) {
@@ -2133,6 +2173,14 @@ export function PricingClient() {
     return `Choisir ${plan.name}`
   }
   const choosePlan = async (plan: PlanOption) => {
+    const planParams = planAnalyticsParams(plan)
+    trackEvent('plan_selected', planParams)
+    trackEvent('cta_click', {
+      cta_location: 'pricing',
+      cta_label: pricingActionLabel(plan),
+      ...planParams,
+    })
+
     if (!hasValidSession(session)) {
       router.push('/signup')
       return
@@ -2214,6 +2262,7 @@ export function PricingClient() {
         return
       }
 
+      trackEvent('checkout_started', planParams)
       window.location.href = data.url
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : "Paiement Stripe indisponible pour le moment.")
@@ -2521,6 +2570,9 @@ export function ChangePlanClient({ targetPlanId }: { targetPlanId?: string | nul
       setInfo(data.message || 'Modification envoyée à Stripe.')
       const nextUrl = data.url || data.redirectTo
       if (nextUrl) {
+        if (data.url) {
+          trackEvent('checkout_started', planAnalyticsParams(targetPlan))
+        }
         window.location.href = nextUrl
         return
       }
@@ -2661,6 +2713,7 @@ export function ChangePlanClient({ targetPlanId }: { targetPlanId?: string | nul
 
 export function OnboardingWizard() {
   const router = useRouter()
+  const onboardingStartedTracked = useRef(false)
   const [returnToSettings, setReturnToSettings] = useState(false)
   const [step, setStep] = useState(0)
   const [session, setSession] = useState<DemoSession | null>(null)
@@ -2678,7 +2731,6 @@ export function OnboardingWizard() {
   const [customLabelName, setCustomLabelName] = useState('')
   const [customDescription, setCustomDescription] = useState('')
   const [customExample, setCustomExample] = useState('')
-  const [customActions, setCustomActions] = useState<CategoryActions>({ label: true, draft: false, telegram: false, archive: false })
   const [telegramConnection, setTelegramConnection] = useState<TelegramConnectionState | null>(() =>
     readStorage<TelegramConnectionState | null>(storageKeys.telegram, null),
   )
@@ -2784,12 +2836,18 @@ export function OnboardingWizard() {
   telegramDisabledReason = !planAllowsCategoryTelegram
     ? "Telegram est disponible à partir de l'offre Pro."
     : telegramPreference === 'none'
-      ? 'Activez les alertes Telegram dans les réglages globaux pour choisir les catégories.'
+      ? 'Activez Telegram en haut pour recevoir des alertes sur ce label.'
       : telegramPreference === 'important_only'
         ? 'Les alertes urgentes sont actives : Toolia alerte automatiquement les emails urgents, sans sélection par catégorie.'
         : !telegramConnected
           ? "Connectez Telegram avant d'activer les alertes."
           : ''
+
+  useEffect(() => {
+    if (initializing || onboardingStartedTracked.current) return
+    onboardingStartedTracked.current = true
+    trackEvent('onboarding_started', planAnalyticsParams(plan))
+  }, [initializing, plan])
 
   useEffect(() => {
     if (initializing) return
@@ -2801,7 +2859,6 @@ export function OnboardingWizard() {
         actions: { ...normalizeActions(category.actions), telegram: false },
       })),
     )
-    setCustomActions((current) => ({ ...normalizeActions(current), telegram: false }))
     setTelegramPreference('none')
   }, [initializing, planAllowsCategoryTelegram])
 
@@ -2875,15 +2932,6 @@ export function OnboardingWizard() {
     )
   }
 
-  const updateCustomAction = (action: ClientActionKey, checked: boolean) => {
-    if (action === 'telegram' && checked && telegramDisabled) {
-      setError(telegramDisabledReason)
-      return
-    }
-    setError('')
-    setCustomActions((current) => applyActionChange(current, action, checked))
-  }
-
   const changeTelegramPreference = (value: OnboardingAnswers['telegramPreference']) => {
     if (!planAllowsCategoryTelegram) {
       setError('Alertes Telegram indisponibles avec l’offre Starter.')
@@ -2905,7 +2953,6 @@ export function OnboardingWizard() {
           actions: { ...normalizeActions(category.actions), telegram: false },
         })),
       )
-      setCustomActions((current) => ({ ...normalizeActions(current), telegram: false }))
     }
   }
 
@@ -2915,27 +2962,27 @@ export function OnboardingWizard() {
       return
     }
 
-    if (!customLabelName.trim() || !customDescription.trim()) {
-      setError('Ajoutez au minimum un nom de label et une description.')
+    if (!customLabelName.trim()) {
+      setError('Ajoutez au minimum un nom de label personnalisé.')
       return
     }
 
     const key = `custom_${Date.now()}`
+    const description = customDescription.trim() || 'Label personnalisé ajouté pendant la configuration.'
     setCategories((current) => [
       ...current,
       {
         key,
         label: customLabelName.trim(),
         selected: true,
-        description: customDescription.trim(),
+        description,
         exampleEmail: customExample.trim(),
-        actions: normalizeActions(customActions),
+        actions: { label: true, draft: false, telegram: false, archive: false },
       },
     ])
     setCustomLabelName('')
     setCustomDescription('')
     setCustomExample('')
-    setCustomActions({ label: true, draft: false, telegram: false, archive: false })
     setError('')
   }
 
@@ -2964,6 +3011,14 @@ export function OnboardingWizard() {
     return true
   }
 
+  const trackCurrentOnboardingStep = (stepIndex: number) => {
+    trackEvent('onboarding_step_completed', {
+      step: onboardingStepAnalytics[stepIndex] || 'summary',
+      selected_label_count: selectedCategories.length,
+      custom_label_count: customLabelCount(categories),
+    })
+  }
+
   const saveAnswers = async () => {
     if (selectedCategories.length === 0) {
       setError('Sélectionnez au moins une catégorie.')
@@ -2978,6 +3033,8 @@ export function OnboardingWizard() {
       setStep(2)
       return
     }
+
+    trackCurrentOnboardingStep(step)
 
     const sanitizedCategories = categories.map((category) => ({
       ...category,
@@ -2997,6 +3054,13 @@ export function OnboardingWizard() {
       telegramPreference: planAllowsCategoryTelegram ? telegramPreference : 'none',
       automationLevel,
     }
+
+    trackEvent('automation_config_completed', {
+      step: 'summary',
+      selected_label_count: selectedCategories.length,
+      custom_label_count: customLabelCount(categories),
+      telegram_enabled: answers.telegramPreference !== 'none',
+    })
 
     if (process.env.NODE_ENV !== 'production') {
       console.info('[saas/onboarding] category actions saved', {
@@ -3216,22 +3280,13 @@ export function OnboardingWizard() {
                     placeholder="Ex: Partenariats"
                   />
                 </label>
-                <div className="md:col-span-2">
-                  <p className="mb-3 text-sm font-medium text-toolia-text">Actions souhaitées</p>
-                  <ActionToggles
-                    actions={customActions}
-                    telegramDisabled={telegramDisabled}
-                    telegramDisabledReason={telegramDisabledReason}
-                    onChange={updateCustomAction}
-                  />
-                </div>
                 <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text md:col-span-2">
-                  Description
+                  Description ou règle
                   <textarea
                     value={customDescription}
                     onChange={(event) => setCustomDescription(event.target.value)}
                     className="min-h-24 rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
-                    placeholder="Quels emails doivent aller dans ce label ?"
+                    placeholder="Optionnel : quels emails doivent aller dans ce label ?"
                   />
                 </label>
                 <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text md:col-span-2">
@@ -3303,6 +3358,9 @@ export function OnboardingWizard() {
                 <div key={category.key} className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover p-4">
                   <div className="mb-3">
                     <h3 className="text-lg font-bold text-toolia-text">{category.label}</h3>
+                    {category.description && (
+                      <p className="mt-1 text-sm text-toolia-text-secondary">{category.description}</p>
+                    )}
                   </div>
                   <ActionToggles
                     actions={category.actions}
@@ -3323,84 +3381,6 @@ export function OnboardingWizard() {
                   )}
                 </div>
               ))}
-            </div>
-
-            <div className="hidden">
-              {!planAllowsCategoryTelegram ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-semibold text-toolia-text">Alertes Telegram</p>
-                  <p className="text-sm text-toolia-text-secondary">
-                    Telegram est disponible à partir de l’offre Pro.
-                  </p>
-                  <Link href="/pricing" className="text-sm font-semibold text-toolia-text underline">
-                    Passez à Pro pour activer les alertes Telegram.
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
-                    Alertes Telegram
-                    <select
-                      value={telegramPreference}
-                      onChange={(event) =>
-                        changeTelegramPreference(event.target.value as (typeof telegramPreferences)[number])
-                      }
-                      className="rounded-card border border-toolia-border-subtle bg-toolia-card px-4 py-3 text-toolia-text outline-none"
-                    >
-                      {Object.entries(telegramLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p className="mt-3 text-sm text-toolia-text-secondary">{telegramHelp[telegramPreference]}</p>
-                  {!telegramConnected && telegramPreference !== 'none' && (
-                    <p className="mt-2 text-sm text-toolia-warning">
-                      Connectez Telegram depuis le tableau de bord avant d’activer les alertes.
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="hidden">
-              {!planAllowsCategoryTelegram ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-semibold text-toolia-text">Alertes Telegram</p>
-                  <p className="text-sm text-toolia-text-secondary">
-                    Telegram est disponible à partir de l’offre Pro.
-                  </p>
-                  <Link href="/pricing" className="text-sm font-semibold text-toolia-text underline">
-                    Passez à Pro pour activer les alertes Telegram.
-                  </Link>
-                </div>
-              ) : (
-                <>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
-                    Alertes Telegram
-                    <select
-                      value={telegramPreference}
-                      onChange={(event) =>
-                        changeTelegramPreference(event.target.value as (typeof telegramPreferences)[number])
-                      }
-                      className="rounded-card border border-toolia-border-subtle bg-toolia-card px-4 py-3 text-toolia-text outline-none"
-                    >
-                      {Object.entries(telegramLabels).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p className="mt-3 text-sm text-toolia-text-secondary">{telegramHelp[telegramPreference]}</p>
-                  {!telegramConnected && telegramPreference !== 'none' && (
-                    <p className="mt-2 text-sm text-toolia-warning">
-                      Connectez Telegram depuis le tableau de bord avant d’activer les alertes.
-                    </p>
-                  )}
-                </>
-              )}
             </div>
 
             <div className="grid gap-4">
@@ -3455,39 +3435,6 @@ export function OnboardingWizard() {
                   <span className="text-xs text-toolia-text-muted">{customDraftInstructions.length}/1000 caractères</span>
                 </label>
               </div>
-              <div className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover p-4">
-                {!planAllowsCategoryTelegram ? (
-                  <div className="flex flex-col gap-3">
-                    <p className="text-sm font-semibold text-toolia-text">Alertes Telegram</p>
-                    <p className="text-sm text-toolia-text-secondary">
-                      Alertes Telegram indisponibles avec l’offre Starter.
-                    </p>
-                    <Link href="/pricing" className="text-sm font-semibold text-toolia-text underline">
-                      Passez à Pro pour activer les alertes Telegram.
-                    </Link>
-                  </div>
-                ) : (
-                  <>
-                    <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
-                      Alertes Telegram
-                      <select
-                        value={telegramPreference}
-                        onChange={(event) =>
-                          changeTelegramPreference(event.target.value as (typeof telegramPreferences)[number])
-                        }
-                        className="rounded-card border border-toolia-border-subtle bg-toolia-card px-4 py-3 text-toolia-text outline-none"
-                      >
-                        {Object.entries(telegramLabels).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <p className="mt-3 text-sm text-toolia-text-secondary">{telegramHelp[telegramPreference]}</p>
-                  </>
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -3523,6 +3470,7 @@ export function OnboardingWizard() {
               type="button"
               onClick={() => {
                 if (step === 2 && !validateVolumeStep()) return
+                trackCurrentOnboardingStep(step)
                 setStep((current) => Math.min(totalSteps - 1, current + 1))
               }}
             >
@@ -3574,6 +3522,7 @@ export function GmailSetupClient() {
     setOauthLoading(true)
 
     try {
+      trackEvent('gmail_connect_started', { source: fromDashboard ? 'dashboard' : 'onboarding' })
       await startGoogleOAuth(fromDashboard ? 'dashboard' : 'onboarding')
     } catch (error) {
       setGmailError(error instanceof Error ? error.message : 'Connexion Gmail impossible.')
@@ -3661,6 +3610,7 @@ export function ProfileGeneratorClient() {
       const searchParams = new URLSearchParams(window.location.search)
       const gmailStatus = searchParams.get('gmail')
       if (gmailStatus === 'connected' || gmailStatus === 'connected_no_refresh_token') {
+        trackEvent('gmail_connected', { source: 'onboarding' })
         writeStorage(storageKeys.gmail, {
           connected: true,
           mode: 'live',
@@ -4185,6 +4135,7 @@ export function ActivationPreviewClient() {
 
 export function DashboardClient() {
   const router = useRouter()
+  const telegramConnectedTracked = useRef(false)
   const [profile, setProfile] = useState<AutomationProfile | null>(null)
   const [state, setState] = useState<DashboardState | null>(null)
   const [plan, setPlan] = useState<PlanOption | null>(null)
@@ -4244,6 +4195,7 @@ export function DashboardClient() {
       setDashboardLoadError('')
       const dashboardSearchParams = new URLSearchParams(window.location.search)
       const gmailStatus = dashboardSearchParams.get('gmail')
+      const checkoutStatus = dashboardSearchParams.get('checkout')
       const upgradeStatus = dashboardSearchParams.get('upgrade')
       if (upgradeStatus === 'success') {
         setBillingResult('Paiement confirmé. Mise à jour de votre offre en cours...')
@@ -4264,6 +4216,14 @@ export function DashboardClient() {
 
       const persistedPlan = normalizePersistedPlan(persisted.plan)
       const persistedProfile = normalizeProfile(persisted.profile || null)
+
+      if (checkoutStatus === 'success') {
+        trackEvent('checkout_completed', planAnalyticsParams(persistedPlan))
+      }
+
+      if (gmailStatus === 'connected' || gmailStatus === 'connected_no_refresh_token' || gmailStatus === 'already_connected') {
+        trackEvent('gmail_connected', { source: 'dashboard' })
+      }
 
       setPlan(persistedPlan)
       if (persistedPlan) writeStorage(storageKeys.plan, persistedPlan)
@@ -4493,6 +4453,7 @@ export function DashboardClient() {
   const startTelegramConnection = async () => {
     setTelegramResult('')
     setTelegramBusy(true)
+    trackEvent('telegram_connect_started', { cta_location: 'dashboard' })
 
     try {
       const token = await getSupabaseAccessToken()
@@ -4518,6 +4479,10 @@ export function DashboardClient() {
         window.setTimeout(() => {
           void refreshAccountState().then((refreshed) => {
             if (refreshed?.telegram?.connected) {
+              if (!telegramConnectedTracked.current) {
+                telegramConnectedTracked.current = true
+                trackEvent('telegram_connected', { source: 'dashboard' })
+              }
               setTelegramResult('Telegram connecté.')
               setTelegramConnect(null)
             } else if (attempt === 8) {
@@ -4582,6 +4547,7 @@ export function DashboardClient() {
     setGmailBusy(true)
 
     try {
+      trackEvent('gmail_connect_started', { source: 'dashboard', force_consent: forceConsent })
       await startGoogleOAuth('dashboard', { forceConsent })
     } catch (error) {
       setGmailResult(error instanceof Error ? error.message : 'Connexion Gmail impossible.')

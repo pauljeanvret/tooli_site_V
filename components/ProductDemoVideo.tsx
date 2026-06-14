@@ -4,6 +4,7 @@ import React from 'react'
 import { CheckCircle2, Mail, Pause, PencilLine, ShieldCheck, Tag } from 'lucide-react'
 import { Button } from './Button'
 import { Section } from './Section'
+import { trackEvent } from '@/lib/analytics'
 
 const dashboardStats = [
   { label: 'Gmail', value: 'Connecté', icon: Mail },
@@ -27,7 +28,18 @@ export function ProductDemoVideo() {
             Suivez vos règles, vos brouillons, vos validations et l’état de votre automatisation depuis un dashboard clair.
           </p>
           <div className="mt-5 md:mt-6">
-            <Button variant="secondary" size="md" className="w-full max-w-xs md:w-auto" onClick={() => { window.location.href = '/signup' }}>
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full max-w-xs md:w-auto"
+              onClick={() => {
+                trackEvent('cta_click', {
+                  cta_location: 'dashboard',
+                  cta_label: 'Préparer mon espace Toolia',
+                })
+                window.location.href = '/signup'
+              }}
+            >
               Préparer mon espace Toolia
             </Button>
           </div>
