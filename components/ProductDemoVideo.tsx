@@ -20,7 +20,7 @@ export function ProductDemoVideo() {
       <div className="grid gap-7 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:gap-10">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-toolia-info">Espace Toolia</p>
-          <h2 className="mt-3 max-w-2xl text-[2rem] font-bold leading-tight text-toolia-text md:mt-4 md:text-4xl lg:text-5xl">
+          <h2 className="font-heading mt-3 max-w-2xl text-[2rem] font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:mt-4 md:text-4xl lg:text-5xl">
             Un espace simple pour garder le contrôle.
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-7 text-toolia-text-secondary md:mt-5 md:text-base">

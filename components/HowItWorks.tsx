@@ -23,7 +23,7 @@ export const HowItWorks: React.FC = () => {
             >
               {copy.howItWorks.setupTime}
             </Badge>
-            <h2 className="text-[2rem] font-bold leading-tight text-toolia-text md:text-4xl lg:text-5xl">
+            <h2 className="font-heading text-[2rem] font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
               {copy.howItWorks.title}
             </h2>
           </div>

@@ -17,12 +17,16 @@ export type GoogleOAuthCookiePayload = {
 
 export const GOOGLE_OAUTH_STATE_COOKIE = 'toolia_google_oauth_state'
 
+function getEnvValue(name: string) {
+  return process.env[name]?.trim() || ''
+}
+
 function getSigningSecret() {
   return (
-    process.env.ENCRYPTION_KEY ||
-    process.env.SUPABASE_SECRET_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    getEnvValue('ENCRYPTION_KEY') ||
+    getEnvValue('SUPABASE_SECRET_KEY') ||
+    getEnvValue('SUPABASE_SERVICE_ROLE_KEY') ||
+    getEnvValue('NEXT_PUBLIC_SUPABASE_URL') ||
     'toolia-local-oauth-state'
   )
 }
@@ -73,14 +77,22 @@ export function verifyGoogleOAuthStateCookie(cookieValue: string | undefined, st
 }
 
 export function hasGoogleOAuthConfig() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI)
+  return Boolean(
+    getEnvValue('GOOGLE_CLIENT_ID') &&
+      getEnvValue('GOOGLE_CLIENT_SECRET') &&
+      getGoogleRedirectUri(),
+  )
+}
+
+export function getGoogleRedirectUri() {
+  return getEnvValue('GOOGLE_REDIRECT_URI')
 }
 
 export function getGoogleOAuthClient() {
   return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI,
+    getEnvValue('GOOGLE_CLIENT_ID'),
+    getEnvValue('GOOGLE_CLIENT_SECRET'),
+    getGoogleRedirectUri(),
   )
 }
 

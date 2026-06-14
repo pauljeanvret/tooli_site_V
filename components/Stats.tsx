@@ -26,7 +26,7 @@ export const Stats: React.FC = () => {
     <Section id="stats" className="bg-toolia-bg-secondary/65 max-md:py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-7 md:gap-10">
         <ScrollReveal>
-          <h2 className="mx-auto max-w-4xl text-center text-[2rem] font-bold leading-tight text-toolia-text md:text-4xl lg:text-5xl">
+          <h2 className="font-heading mx-auto max-w-4xl text-center text-[2rem] font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
             {copy.stats.title}
           </h2>
         </ScrollReveal>

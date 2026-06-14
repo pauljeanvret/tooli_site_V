@@ -103,22 +103,22 @@ export const Values: React.FC = () => {
             <source src="/videos/calm-water.mp4" type="video/mp4" />
           </video>
 
-          <div className="absolute inset-0 bg-gradient-to-br from-white/32 via-white/10 to-[#f3eadf]/24 dark:from-[#020817]/36 dark:via-[#06101f]/20 dark:to-[#020617]/42 sm:from-white/48 sm:via-white/18 sm:to-[#f3eadf]/42 sm:dark:from-[#020817]/54 sm:dark:via-[#06101f]/34 sm:dark:to-[#020617]/58" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/32 via-white/10 to-[#f3eadf]/24 dark:from-[#020817]/36 dark:via-[#06101f]/20 dark:to-[#020617]/42 sm:from-white/48 sm:via-white/20 sm:to-[#f3eadf]/42 sm:dark:from-[#020817]/54 sm:dark:via-[#06101f]/34 sm:dark:to-[#020617]/60" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0.48),rgba(255,255,255,0.12)_42%,transparent_70%)] dark:bg-[radial-gradient(circle_at_50%_48%,rgba(2,6,23,0.54),rgba(2,6,23,0.18)_44%,transparent_72%)] sm:bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0.54),rgba(255,255,255,0.14)_42%,transparent_70%)] sm:dark:bg-[radial-gradient(circle_at_50%_48%,rgba(2,6,23,0.66),rgba(2,6,23,0.24)_44%,transparent_72%)]" />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/14 to-transparent dark:from-[#020617]/20 sm:h-32" />
 
-          <div className="relative z-10 flex h-full items-center justify-center px-5 py-14 text-center sm:px-10 sm:py-20 md:py-24">
-            <div className="relative mx-auto max-w-5xl">
-              <div className="pointer-events-none absolute -inset-x-5 -inset-y-8 rounded-[2rem] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.12)_46%,transparent_72%)] backdrop-blur-[1.5px] sm:-inset-x-8 sm:-inset-y-10 dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.42),rgba(2,6,23,0.16)_48%,transparent_72%)]" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center px-5 py-14 text-center sm:px-10 sm:py-20 md:relative md:inset-auto md:h-full md:py-24">
+            <div className="relative mx-auto w-[min(88vw,24rem)] sm:w-auto sm:max-w-5xl">
+              <div className="pointer-events-none absolute -inset-x-5 -inset-y-8 rounded-[2rem] bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.52),rgba(2,6,23,0.24)_46%,transparent_72%)] backdrop-blur-[1.5px] sm:-inset-x-8 sm:-inset-y-10 sm:bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.12)_46%,transparent_72%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.42),rgba(2,6,23,0.16)_48%,transparent_72%)]" />
 
               <div className="relative">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-toolia-info dark:text-sky-200">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-100/95 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] sm:text-toolia-info sm:drop-shadow-none sm:dark:text-sky-200">
                   Calme et contrôle
                 </p>
-                <h2 className="mx-auto mt-4 max-w-[22rem] text-[clamp(2.25rem,11vw,3.5rem)] font-semibold leading-[0.92] tracking-[-0.055em] text-slate-950 [text-wrap:balance] drop-shadow-[0_1px_18px_rgba(255,255,255,0.25)] sm:mt-5 sm:max-w-5xl sm:text-[clamp(2.6rem,5.8vw,6.6rem)] dark:text-white dark:drop-shadow-[0_8px_30px_rgba(0,0,0,0.56)]">
+                <h2 className="font-heading mx-auto mt-4 max-w-[22rem] text-[clamp(2.25rem,11vw,3.5rem)] font-extrabold leading-[0.95] tracking-[-0.04em] text-white [text-wrap:balance] drop-shadow-[0_8px_30px_rgba(0,0,0,0.58)] sm:mt-5 sm:max-w-5xl sm:text-[clamp(2.6rem,5.8vw,6.6rem)] sm:text-slate-950 sm:drop-shadow-[0_1px_18px_rgba(255,255,255,0.25)] sm:dark:text-white sm:dark:drop-shadow-[0_8px_30px_rgba(0,0,0,0.56)]">
                   Retrouvez le calme dans votre boîte mail.
                 </h2>
-                <p className="mx-auto mt-5 max-w-[21rem] text-sm leading-7 text-slate-700 sm:mt-7 sm:max-w-3xl sm:text-base sm:leading-8 md:text-lg dark:text-white/82">
+                <p className="mx-auto mt-5 max-w-[21rem] text-sm leading-7 text-white/80 drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)] sm:mt-7 sm:max-w-3xl sm:text-base sm:leading-8 sm:text-slate-700 sm:drop-shadow-none md:text-lg sm:dark:text-white/80">
                   Toolia filtre le bruit, prépare les réponses utiles et vous laisse valider ce qui compte vraiment.
                   Votre boîte mail reste organisée, vos réponses avancent, et vous gardez toujours le contrôle.
                 </p>
@@ -127,7 +127,7 @@ export const Values: React.FC = () => {
                   {calmSignals.map((signal, index) => (
                     <motion.span
                       key={signal}
-                      className={`${index > 2 ? 'hidden sm:inline-flex' : 'inline-flex'} rounded-full border border-white/75 bg-white/60 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-[0_10px_32px_rgba(15,23,42,0.1)] backdrop-blur-md sm:px-4 sm:py-2 sm:text-sm dark:border-white/18 dark:bg-[#102039]/64 dark:text-white/88 dark:shadow-[0_12px_38px_rgba(0,0,0,0.26)]`}
+                      className={`${index > 2 ? 'hidden sm:inline-flex' : 'inline-flex'} rounded-full border border-white/75 bg-white/60 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-[0_10px_32px_rgba(15,23,42,0.1)] backdrop-blur-md sm:px-4 sm:py-2 sm:text-sm dark:border-white/20 dark:bg-[#102039]/64 dark:text-white/90 dark:shadow-[0_12px_38px_rgba(0,0,0,0.26)]`}
                       initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                       viewport={{ once: true }}
@@ -147,3 +147,4 @@ export const Values: React.FC = () => {
 }
 
 Values.displayName = 'Values'
+

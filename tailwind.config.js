@@ -51,7 +51,8 @@ module.exports = {
         'toolia-info': 'rgb(var(--toolia-info) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-heading)', 'var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'h1-desktop': '64px',

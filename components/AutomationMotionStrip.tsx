@@ -32,16 +32,21 @@ const secondRow = [
   'Aucun envoi automatique',
 ]
 
-function MotionRow({ items, reverse = false }: { items: string[]; reverse?: boolean }) {
+function MotionRow({ items, reverse = false, compact = false }: { items: string[]; reverse?: boolean; compact?: boolean }) {
   const repeated = [...items, ...items, ...items, ...items]
 
   return (
     <div className="overflow-hidden">
-      <div className={cn('flex w-max min-w-[220vw] gap-3 py-1', reverse ? 'toolia-marquee-reverse' : 'toolia-marquee')}>
+      <div className={cn('flex w-max min-w-[220vw] flex-nowrap py-1', compact ? 'gap-2' : 'gap-3', reverse ? 'toolia-marquee-reverse' : 'toolia-marquee')}>
         {repeated.map((item, index) => (
           <span
             key={`${item}-${index}`}
-            className="inline-flex whitespace-nowrap rounded-full border border-slate-200/90 bg-white/90 px-4 py-2 text-xs font-semibold text-slate-900 shadow-[0_8px_28px_rgba(15,23,42,0.1)] backdrop-blur-lg dark:border-white/18 dark:bg-slate-900/78 dark:text-white/90 dark:shadow-[0_10px_30px_rgba(0,0,0,0.24)]"
+            className={cn(
+              'inline-flex whitespace-nowrap rounded-full border border-slate-200/90 bg-white/90 font-semibold text-slate-900 shadow-[0_8px_28px_rgba(15,23,42,0.1)] backdrop-blur-lg dark:border-white/20 dark:bg-slate-900/78 dark:text-white/90 dark:shadow-[0_10px_30px_rgba(0,0,0,0.24)]',
+              compact
+                ? 'border-white/80 bg-white/90 px-3 py-1.5 text-[0.68rem] text-slate-950 shadow-sm dark:border-white/80 dark:bg-white/90 dark:text-slate-950'
+                : 'px-4 py-2 text-xs',
+            )}
           >
             {item}
           </span>
@@ -52,24 +57,17 @@ function MotionRow({ items, reverse = false }: { items: string[]; reverse?: bool
 }
 
 export function AutomationMotionStrip({ className = '' }: { className?: string }) {
-  const mobileProofChips = ['Email reçu', 'Brouillon préparé', 'Validation humaine', 'Aucun envoi automatique']
+  const mobileProofChips = ['Email reçu', 'Brouillon préparé', 'Validation humaine', 'Aucun envoi automatique', 'Label ajouté', 'Gmail connecté']
 
   return (
     <div className={cn('pointer-events-none relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-0', className)}>
-      <div className="relative border-y border-slate-200/80 bg-white/72 py-2 shadow-[0_18px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-white/18 dark:bg-slate-950/58 dark:shadow-[0_18px_80px_rgba(0,0,0,0.42)] sm:py-3">
-        <div className="flex flex-wrap items-center justify-center gap-2 px-5 sm:hidden">
-          {mobileProofChips.map((item) => (
-            <span
-              key={item}
-              className="inline-flex whitespace-nowrap rounded-full border border-slate-200/90 bg-white/86 px-3 py-1.5 text-[0.68rem] font-semibold text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.1)] backdrop-blur-lg dark:border-white/18 dark:bg-slate-900/76 dark:text-white/90"
-            >
-              {item}
-            </span>
-          ))}
+      <div className="relative border-y border-slate-200/80 bg-white/70 py-1.5 shadow-[0_18px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-white/20 dark:bg-slate-950/60 dark:shadow-[0_18px_80px_rgba(0,0,0,0.42)] sm:py-3">
+        <div className="overflow-hidden sm:hidden [mask-image:linear-gradient(to_right,transparent_0%,black_4%,black_96%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_4%,black_96%,transparent_100%)]">
+          <MotionRow items={mobileProofChips} compact />
         </div>
         <div className="hidden sm:block">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white/94 via-white/54 to-transparent dark:from-[#030712]/94 dark:via-[#06101f]/60 sm:w-40" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white/94 via-white/54 to-transparent dark:from-[#030712]/94 dark:via-[#06101f]/60 sm:w-40" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white/95 via-white/54 to-transparent dark:from-[#030712]/95 dark:via-[#06101f]/60 sm:w-40" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white/95 via-white/54 to-transparent dark:from-[#030712]/95 dark:via-[#06101f]/60 sm:w-40" />
           <MotionRow items={firstRow} />
           <MotionRow items={secondRow} reverse />
         </div>
@@ -77,3 +75,4 @@ export function AutomationMotionStrip({ className = '' }: { className?: string }
     </div>
   )
 }
+

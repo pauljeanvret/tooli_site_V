@@ -1,8 +1,21 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter, Manrope } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+})
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-heading',
+  display: 'swap',
+})
 
 const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://toolia.tech'
 const siteTitle = 'Toolia — Votre boîte mail se gère toute seule'
@@ -62,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={`${inter.variable} ${manrope.variable}`}>
       <head>
         <Script id="toolia-theme" strategy="beforeInteractive">
           {`

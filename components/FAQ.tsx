@@ -35,7 +35,7 @@ export const FAQ: React.FC = () => {
       <div className="flex flex-col gap-10 md:gap-14">
         {/* Title */}
         <ScrollReveal>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-toolia-text text-center">
+          <h2 className="font-heading text-center text-3xl font-extrabold tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
             {copy.faq.title}
           </h2>
         </ScrollReveal>

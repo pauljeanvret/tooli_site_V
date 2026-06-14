@@ -51,7 +51,7 @@ export const ProductShowcase: React.FC = () => {
       <div className="flex flex-col gap-7 md:gap-14">
         <ScrollReveal>
           <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center">
-            <h2 className="text-[2rem] font-bold leading-tight text-toolia-text md:text-4xl lg:text-5xl">
+            <h2 className="font-heading text-[2rem] font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
               {copy.pricing.title}
             </h2>
             <p className="text-sm leading-6 text-toolia-text-secondary md:text-base">
@@ -77,7 +77,15 @@ export const ProductShowcase: React.FC = () => {
                   <div>
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <h3 className="text-2xl font-bold text-toolia-text">{plan.name}</h3>
-                      {plan.featured && <Badge variant="primary" size="sm">Populaire</Badge>}
+                      {plan.featured && (
+                        <Badge
+                          variant="primary"
+                          size="sm"
+                          className="dark:border-blue-300/30 dark:bg-blue-400/15 dark:text-blue-100 dark:shadow-[0_0_24px_rgba(59,130,246,0.18)]"
+                        >
+                          Populaire
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm leading-6 text-toolia-text-secondary">{plan.description}</p>
                   </div>

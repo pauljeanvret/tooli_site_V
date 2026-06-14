@@ -214,61 +214,73 @@ export const Navbar: React.FC = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 top-18 z-40 border-t border-toolia-border-subtle bg-toolia-bg-secondary md:hidden"
+            className="fixed inset-0 z-40 bg-slate-950/75 pt-[4.5rem] backdrop-blur-2xl dark:bg-slate-950/80 md:hidden"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="flex flex-col gap-4 p-6">
-              <ThemeToggle />
-              {copy.navbar.nav.map((link) => (
-                <button
-                  key={link.href}
-                  onClick={() => handleSmoothScroll(link.href)}
-                  className="py-3 text-left font-medium text-toolia-text-secondary transition-colors hover:text-toolia-text"
-                >
-                  {link.label}
-                </button>
-              ))}
-              {account ? (
-                <div className="mt-4 flex flex-col gap-3 border-t border-toolia-border-subtle pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-toolia-border-subtle bg-toolia-card-hover text-sm font-bold text-toolia-text">
-                      {profileInitial}
+            <div className="h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)] pt-5">
+              <div className="mx-auto flex max-w-md flex-col gap-3">
+                <div className="rounded-[24px] border border-white/70 bg-white/95 p-3 shadow-[0_18px_52px_rgba(2,6,23,0.2)] backdrop-blur-2xl dark:border-white/70 dark:bg-white/95">
+                  <ThemeToggle className="[&_p]:text-[0.65rem] [&_p]:text-slate-600 [&_p]:dark:text-slate-600" />
+                </div>
+
+                <div className="grid gap-1 rounded-[24px] border border-white/70 bg-white/95 p-2 shadow-[0_18px_52px_rgba(2,6,23,0.2)] backdrop-blur-2xl dark:border-white/70 dark:bg-white/95">
+                  {copy.navbar.nav.map((link) => (
+                    <button
+                      key={link.href}
+                      onClick={() => handleSmoothScroll(link.href)}
+                      className="rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90"
+                    >
+                      {link.label}
+                    </button>
+                  ))}
+                </div>
+
+                {account ? (
+                  <div className="rounded-[24px] border border-white/70 bg-white/95 p-3 shadow-[0_18px_52px_rgba(2,6,23,0.2)] backdrop-blur-2xl dark:border-white/70 dark:bg-white/95">
+                    <div className="mb-2 flex items-center gap-3 rounded-2xl bg-slate-100/90 px-3 py-3 dark:bg-slate-100/90">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-white text-sm font-bold text-slate-950 shadow-sm dark:border-slate-200/90 dark:bg-white dark:text-slate-950">
+                        {profileInitial}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-950 dark:text-slate-950">{account.name}</p>
+                        <p className="truncate text-xs text-slate-600 dark:text-slate-600">{account.email}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-toolia-text">{account.name}</p>
-                      <p className="truncate text-xs text-toolia-text-secondary">{account.email}</p>
+
+                    <div className="grid gap-1">
+                      <button className="rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90" onClick={() => { window.location.href = '/dashboard' }}>
+                        Mon espace Toolia
+                      </button>
+                      <button className="rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90" onClick={() => { window.location.href = '/dashboard' }}>
+                        Mon automatisation
+                      </button>
+                      <button className="rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90" onClick={() => { window.location.href = '/dashboard/settings' }}>
+                        Paramètres
+                      </button>
+                      <button className="rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90" onClick={logout}>
+                        Se déconnecter
+                      </button>
+                    </div>
+
+                    <div className="mt-2 border-t border-slate-200/90 pt-2 dark:border-slate-200/90">
+                      <button className="w-full rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-600 dark:hover:bg-red-50" onClick={() => { window.location.href = '/dashboard/settings#delete-account' }}>
+                        Supprimer mon compte
+                      </button>
                     </div>
                   </div>
-                  <button className="py-2 text-left font-medium text-toolia-text-secondary transition-colors hover:text-toolia-text" onClick={() => { window.location.href = '/dashboard' }}>
-                    Mon espace Toolia
-                  </button>
-                  <button className="py-2 text-left font-medium text-toolia-text-secondary transition-colors hover:text-toolia-text" onClick={() => { window.location.href = '/dashboard' }}>
-                    Mon automatisation
-                  </button>
-                  <button className="py-2 text-left font-medium text-toolia-text-secondary transition-colors hover:text-toolia-text" onClick={() => { window.location.href = '/dashboard/settings' }}>
-                    Paramètres
-                  </button>
-                  <button className="py-2 text-left font-medium text-toolia-text-secondary transition-colors hover:text-toolia-text" onClick={logout}>
-                    Se déconnecter
-                  </button>
-                  <button className="py-2 text-left font-medium text-toolia-danger transition-colors" onClick={() => { window.location.href = '/dashboard/settings#delete-account' }}>
-                    Supprimer mon compte
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      window.location.href = '/login'
-                    }}
-                    className="py-3 text-left font-medium text-toolia-text-secondary transition-colors hover:text-toolia-text"
-                  >
-                    Se connecter
-                  </button>
-                  <div className="mt-4 border-t border-toolia-border-subtle pt-4">
+                ) : (
+                  <div className="rounded-[24px] border border-white/70 bg-white/95 p-3 shadow-[0_18px_52px_rgba(2,6,23,0.2)] backdrop-blur-2xl dark:border-white/70 dark:bg-white/95">
+                    <button
+                      onClick={() => {
+                        window.location.href = '/login'
+                      }}
+                      className="mb-3 w-full rounded-2xl px-3 py-3 text-left text-[1.05rem] font-semibold text-slate-950 transition-colors hover:bg-slate-100/90 dark:text-slate-950 dark:hover:bg-slate-100/90"
+                    >
+                      Se connecter
+                    </button>
                     <Button
                       variant="primary"
                       size="md"
@@ -280,8 +292,8 @@ export const Navbar: React.FC = () => {
                       {copy.navbar.cta}
                     </Button>
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -291,3 +303,5 @@ export const Navbar: React.FC = () => {
 }
 
 Navbar.displayName = 'Navbar'
+
+

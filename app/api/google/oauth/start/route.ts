@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   createGoogleOAuthState,
   getGoogleAuthorizationUrl,
+  getGoogleRedirectUri,
+  GOOGLE_GMAIL_SCOPES,
   GOOGLE_OAUTH_STATE_COOKIE,
   hasGoogleOAuthConfig,
 } from '@/lib/google/oauth'
@@ -23,15 +25,21 @@ export async function GET(request: NextRequest) {
   }
 
   const from = request.nextUrl.searchParams.get('from') === 'dashboard' ? 'dashboard' : 'onboarding'
+  const forceConsent =
+    request.nextUrl.searchParams.get('force') === '1' ||
+    request.nextUrl.searchParams.get('prompt') === 'consent'
   const alreadyConnected = await getConnectedGmailConnection(user.id)
-  if (alreadyConnected && hasRequiredGmailScopes(alreadyConnected)) {
+  const alreadyHasRequiredScopes = alreadyConnected ? hasRequiredGmailScopes(alreadyConnected) : false
+
+  if (alreadyConnected && alreadyHasRequiredScopes && !forceConsent) {
     return NextResponse.json({
       ok: true,
       alreadyConnected: true,
       message: 'Gmail est déjà connecté.',
-      redirectTo: from === 'onboarding'
-        ? '/onboarding/profile?gmail=already_connected'
-        : '/dashboard?gmail=already_connected',
+      redirectTo:
+        from === 'onboarding'
+          ? '/onboarding/profile?gmail=already_connected'
+          : '/dashboard?gmail=already_connected',
     })
   }
 
@@ -40,6 +48,17 @@ export async function GET(request: NextRequest) {
     returnTo: from,
   })
   const authorizationUrl = getGoogleAuthorizationUrl(payload.state)
+  const redirectUri = getGoogleRedirectUri()
+
+  console.info('[google/oauth/start] Google authorization URL created', {
+    from,
+    forceConsent,
+    redirectUri,
+    scopes: GOOGLE_GMAIL_SCOPES,
+    alreadyConnected: Boolean(alreadyConnected),
+    alreadyHasRequiredScopes,
+  })
+
   const wantsJson = request.nextUrl.searchParams.get('response') === 'json'
   const response = wantsJson
     ? NextResponse.json({ ok: true, authorizationUrl })

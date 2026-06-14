@@ -116,7 +116,7 @@ export const ContactForm: React.FC = () => {
         <ScrollReveal>
           <div className="flex max-w-xl flex-col gap-8">
             <div>
-              <h2 className="mb-4 text-3xl font-bold text-toolia-text md:text-4xl lg:text-5xl">
+              <h2 className="font-heading mb-4 text-3xl font-extrabold tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
                 {copy.contact.title}
               </h2>
               <p className="text-lg leading-8 text-toolia-text-secondary">

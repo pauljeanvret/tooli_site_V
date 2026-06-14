@@ -61,7 +61,7 @@ export const Hero: React.FC = () => {
         <source src="/videos/hero-desk.mp4" type="video/mp4" />
       </video>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-white/36 via-white/12 to-white/42 dark:from-[#030712]/36 dark:via-[#06101f]/18 dark:to-[#030712]/46 sm:from-white/60 sm:via-white/24 sm:to-white/68 sm:dark:from-[#030712]/70 sm:dark:via-[#06101f]/48 sm:dark:to-[#030712]/78" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/36 via-white/12 to-white/42 dark:from-[#030712]/36 dark:via-[#06101f]/20 dark:to-[#030712]/46 sm:from-white/60 sm:via-white/24 sm:to-white/68 sm:dark:from-[#030712]/70 sm:dark:via-[#06101f]/48 sm:dark:to-[#030712]/78" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.54),rgba(255,255,255,0.2)_42%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.58),rgba(3,7,18,0.28)_46%,transparent_72%)] sm:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.26),transparent_55%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.62),rgba(3,7,18,0.34)_42%,transparent_68%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.22),rgba(255,255,255,0.04)_44%,transparent_68%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.3),transparent_60%)] sm:bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.08)_38%,transparent_64%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.44),transparent_58%)]" />
       <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-toolia-bg-main to-transparent sm:h-36" />
@@ -74,7 +74,7 @@ export const Hero: React.FC = () => {
           variants={heroGroup}
         >
           <motion.h1
-            className="mx-auto max-w-[22rem] text-center text-[clamp(3.2rem,14vw,5.4rem)] font-semibold leading-[0.9] tracking-[-0.055em] text-slate-950 drop-shadow-[0_1px_18px_rgba(255,255,255,0.34)] [text-wrap:balance] dark:text-white dark:drop-shadow-[0_8px_34px_rgba(0,0,0,0.58)] sm:max-w-[1100px] sm:text-[clamp(4rem,10vw,9.5rem)]"
+            className="font-heading mx-auto max-w-[22rem] text-center text-[clamp(3.2rem,14vw,5.4rem)] font-extrabold leading-[0.9] tracking-[-0.055em] text-slate-950 drop-shadow-[0_1px_18px_rgba(255,255,255,0.34)] [text-wrap:balance] dark:text-white dark:drop-shadow-[0_8px_34px_rgba(0,0,0,0.58)] sm:max-w-[1100px] sm:text-[clamp(4rem,10vw,9.5rem)]"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -83,13 +83,13 @@ export const Hero: React.FC = () => {
           </motion.h1>
 
           <motion.div
-            className="mt-4 h-[3px] w-24 rounded-full bg-toolia-primary/72 shadow-[0_0_24px_rgba(31,42,77,0.26)] dark:bg-white/62 dark:shadow-[0_0_24px_rgba(147,197,253,0.32)] sm:mt-5 sm:w-28"
+            className="mt-4 h-[3px] w-24 rounded-full bg-toolia-primary/70 shadow-[0_0_24px_rgba(31,42,77,0.26)] dark:bg-white/60 dark:shadow-[0_0_24px_rgba(147,197,253,0.32)] sm:mt-5 sm:w-28"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           />
 
           <motion.p
-            className="mt-4 max-w-[22rem] text-base leading-7 text-toolia-text-secondary dark:text-white/84 sm:mt-5 sm:max-w-3xl sm:text-[clamp(1.1rem,1.45vw,1.55rem)] sm:leading-relaxed"
+            className="mt-4 max-w-[22rem] text-base leading-7 text-slate-800 drop-shadow-[0_2px_12px_rgba(255,255,255,0.4)] dark:text-white/90 dark:drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)] sm:mt-5 sm:max-w-3xl sm:text-[clamp(1.1rem,1.45vw,1.55rem)] sm:leading-relaxed sm:text-toolia-text-secondary sm:drop-shadow-none sm:dark:text-white/80 sm:dark:drop-shadow-none"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -117,7 +117,7 @@ export const Hero: React.FC = () => {
           </motion.div>
 
           <motion.p
-            className="mt-4 text-xs text-toolia-text-secondary sm:mt-6"
+            className="mt-4 text-xs font-medium text-slate-700 drop-shadow-[0_2px_10px_rgba(255,255,255,0.36)] dark:text-white/75 dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.46)] sm:mt-6 sm:font-normal sm:text-toolia-text-secondary sm:drop-shadow-none sm:dark:text-toolia-text-secondary"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -132,3 +132,4 @@ export const Hero: React.FC = () => {
 }
 
 Hero.displayName = 'Hero'
+

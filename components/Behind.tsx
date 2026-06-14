@@ -11,7 +11,7 @@ export const Behind: React.FC = () => {
     <Section id="behind">
       <div className="mx-auto flex max-w-4xl flex-col gap-12">
         <ScrollReveal>
-          <h2 className="text-2xl font-bold text-toolia-text md:text-3xl lg:text-4xl">
+          <h2 className="font-heading text-2xl font-extrabold tracking-[-0.03em] text-toolia-text md:text-3xl lg:text-4xl">
             Derrière Toolia
           </h2>
         </ScrollReveal>

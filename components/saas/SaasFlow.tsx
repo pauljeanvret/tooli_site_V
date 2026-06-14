@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -548,11 +548,23 @@ async function getSupabaseAccessToken() {
   return data.session?.access_token || null
 }
 
-async function startGoogleOAuth(returnTo: 'dashboard' | 'onboarding') {
+function getPasswordResetRedirectTo() {
+  if (typeof window === 'undefined') return '/reset-password'
+
+  return `${window.location.origin}/reset-password`
+}
+
+async function startGoogleOAuth(returnTo: 'dashboard' | 'onboarding', options?: { forceConsent?: boolean }) {
   const token = await getSupabaseAccessToken()
   if (!token) throw new Error('Connectez-vous avant de connecter Gmail.')
 
-  const url = `/api/google/oauth/start?from=${returnTo}&response=json`
+  const params = new URLSearchParams({
+    from: returnTo,
+    response: 'json',
+  })
+  if (options?.forceConsent) params.set('force', '1')
+
+  const url = `/api/google/oauth/start?${params.toString()}`
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -761,19 +773,23 @@ function SaasShell({
   description,
   children,
   showDemoNotice = false,
+  displayTitle = false,
 }: {
   eyebrow: string
   title: string
   description: string
   children: React.ReactNode
   showDemoNotice?: boolean
+  displayTitle?: boolean
 }) {
   return (
     <section className="min-h-[calc(100vh-72px)] bg-gradient-to-b from-toolia-bg-main via-toolia-bg-main to-toolia-bg-secondary/70 px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-8">
         <div className="max-w-3xl">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-toolia-info">{eyebrow}</p>
-          <h1 className="text-3xl font-bold leading-tight text-toolia-text md:text-5xl">{title}</h1>
+          <h1 className={`${displayTitle ? 'font-heading font-extrabold tracking-[-0.035em]' : 'font-bold'} text-3xl leading-tight text-toolia-text md:text-5xl`}>
+            {title}
+          </h1>
           <p className="mt-4 max-w-2xl text-base text-toolia-text-secondary md:text-lg">{description}</p>
         </div>
         {showDemoNotice && <DemoNotice />}
@@ -791,9 +807,53 @@ function AppCard({ children, className = '', id }: { children: React.ReactNode; 
   )
 }
 
+function NeutralLoadingState({
+  title = 'Chargement de votre espace Toolia...',
+  description = 'Synchronisation de votre statut, de votre offre et de votre configuration.',
+}: {
+  title?: string
+  description?: string
+}) {
+  return (
+    <AppCard>
+      <div className="flex flex-col gap-5">
+        <div className="flex items-start gap-4">
+          <div className="h-11 w-11 animate-pulse rounded-full border border-toolia-info/30 bg-toolia-info/10" />
+          <div>
+            <h2 className="text-2xl font-bold text-toolia-text">{title}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-toolia-text-secondary">{description}</p>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover p-4">
+              <div className="h-3 w-24 animate-pulse rounded-full bg-toolia-text-muted/20" />
+              <div className="mt-4 h-8 w-32 animate-pulse rounded-full bg-toolia-text-muted/15" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppCard>
+  )
+}
+
 function HelperText({ children }: { children: React.ReactNode }) {
   return <p className="text-sm leading-relaxed text-toolia-text-secondary">{children}</p>
 }
+
+const authShellClass =
+  'relative isolate overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_24px_90px_rgba(22,34,74,0.10)] backdrop-blur-xl dark:border-toolia-border-subtle dark:bg-slate-900/70 sm:p-6 lg:p-10'
+const authPanelClass =
+  'rounded-[28px] border border-slate-200/90 bg-white/95 p-5 shadow-[0_22px_70px_rgba(22,34,74,0.12)] dark:border-toolia-border-subtle dark:bg-slate-950/60 sm:p-7 md:p-8'
+const authInputClass =
+  'rounded-[18px] border border-slate-200 bg-white/90 px-4 py-3.5 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-500/10 dark:border-toolia-border-subtle dark:bg-white/5 dark:text-toolia-text dark:placeholder:text-toolia-text-muted/75 dark:focus:border-toolia-primary dark:focus:bg-toolia-card dark:focus:ring-toolia-info/10'
+const authLabelClass = 'flex flex-col gap-2 text-sm font-medium text-slate-900 dark:text-toolia-text'
+const authMutedCardClass =
+  'flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-3 text-slate-700 dark:border-toolia-border-subtle dark:bg-white/5 dark:text-toolia-text-secondary'
+const authLinkClass =
+  'font-semibold text-blue-700 underline-offset-4 transition hover:text-blue-900 hover:underline dark:text-toolia-text dark:hover:text-white'
+const authDisabledButtonClass =
+  'mt-1 w-full disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100 dark:disabled:bg-slate-700 dark:disabled:text-white dark:disabled:opacity-70'
 
 function NextLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -1369,32 +1429,60 @@ export function SignupClient() {
       eyebrow="Compte"
       title="Lancez votre espace Toolia"
       description="Créez votre compte pour choisir votre offre, configurer Toolia et connecter Gmail en toute sécurité."
+      displayTitle
     >
-      {sessionCheckMessage && (
-        <AppCard className="flex h-full flex-col">
-          <p className="text-sm font-medium text-toolia-text">{sessionCheckMessage}</p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Button type="button" onClick={() => setSessionCheckMessage('')}>
-              Créer un compte
-            </Button>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center rounded-btn border border-toolia-border-subtle px-5 py-3 text-sm font-semibold text-toolia-text transition hover:border-toolia-primary"
-            >
-              Se connecter
-            </Link>
+      <div className={authShellClass}>
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-toolia-info/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-8 h-80 w-80 rounded-full bg-toolia-primary/10 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="max-w-xl">
+            <StatusPill tone="success">Espace client sécurisé</StatusPill>
+            <h2 className="font-heading mt-5 text-3xl font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl">
+              Créez votre compte, gardez le contrôle.
+            </h2>
+            <p className="mt-4 text-base leading-8 text-toolia-text-secondary">
+              Toolia prépare votre espace avant la connexion Gmail. Vous choisissez votre offre, vous configurez vos règles, puis rien n’est envoyé sans votre validation.
+            </p>
+            <div className="mt-6 grid gap-3 text-sm text-toolia-text-secondary">
+              {[
+                'Paiement sécurisé via Stripe.',
+                'Connexion Gmail contrôlée par Google.',
+                'Aucun email envoyé automatiquement.',
+              ].map((item) => (
+                <div key={item} className={authMutedCardClass}>
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-toolia-success" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </AppCard>
-      )}
-      <div className={allowDemoMode ? 'grid gap-6 lg:grid-cols-2' : 'grid max-w-2xl gap-6'}>
-        <AppCard>
-          <div className="mb-6">
-            <StatusPill tone="success">A. Espace client</StatusPill>
-            <h2 className="mt-4 text-2xl font-bold text-toolia-text">Créer mon espace Toolia</h2>
-            <HelperText>
-              Utilisez cette option pour préparer votre vraie configuration. L’activation finale demandera ensuite une offre choisie, un paiement validé et une connexion Gmail.
-            </HelperText>
-          </div>
+
+          <div className="mx-auto w-full max-w-2xl">
+            {sessionCheckMessage && (
+              <div className="mb-5 rounded-[24px] border border-toolia-info/25 bg-toolia-info/10 p-4">
+                <p className="text-sm font-medium text-toolia-text">{sessionCheckMessage}</p>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                  <Button type="button" onClick={() => setSessionCheckMessage('')}>
+                    Créer un compte
+                  </Button>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center rounded-btn border border-toolia-border-subtle bg-toolia-card px-5 py-3 text-sm font-semibold text-toolia-text transition hover:border-toolia-primary"
+                  >
+                    Se connecter
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            <div className={authPanelClass}>
+              <div className="mb-7">
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-toolia-info">Compte Toolia</p>
+                <h3 className="mt-3 text-2xl font-bold text-toolia-text">Créer mon espace Toolia</h3>
+                <HelperText>
+                  Renseignez vos accès Toolia. La connexion Gmail se fera ensuite depuis Google, jamais avec votre mot de passe Gmail.
+                </HelperText>
+              </div>
           <form
             className="flex flex-col gap-5"
             onSubmit={(event) => {
@@ -1402,42 +1490,42 @@ export function SignupClient() {
               if (canCreateAccount) void startFlow('account')
             }}
           >
-            <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
+            <label className={authLabelClass}>
               Nom
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
+                className={authInputClass}
                 placeholder="Votre nom"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
+            <label className={authLabelClass}>
               Email professionnel
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
+                className={authInputClass}
                 placeholder="vous@entreprise.com"
                 type="email"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
+            <label className={authLabelClass}>
               Mot de passe
               <input
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
+                className={authInputClass}
                 placeholder="Minimum 8 caractères"
                 type="password"
                 autoComplete="new-password"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
+            <label className={authLabelClass}>
               Confirmer le mot de passe
               <input
                 value={passwordConfirmation}
                 onChange={(event) => setPasswordConfirmation(event.target.value)}
-                className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
+                className={authInputClass}
                 placeholder="Retapez votre mot de passe"
                 type="password"
                 autoComplete="new-password"
@@ -1459,17 +1547,24 @@ export function SignupClient() {
                 Ce compte existe déjà. Se connecter
               </Link>
             )}
-            <Button type="submit" size="lg" className="w-full" disabled={!canCreateAccount || loading}>
+            <Button
+              type="submit"
+              size="lg"
+              className={authDisabledButtonClass}
+              disabled={!canCreateAccount || loading}
+            >
               {loading ? 'Création en cours...' : 'Créer mon espace Toolia'}
             </Button>
             <p className="text-center text-sm text-toolia-text-secondary">
               Vous avez déjà un compte ?{' '}
-              <Link href="/login" className="font-semibold text-toolia-text underline-offset-4 hover:underline">
+              <Link href="/login" className={authLinkClass}>
                 Se connecter
               </Link>
             </p>
           </form>
-        </AppCard>
+            </div>
+          </div>
+        </div>
       </div>
     </SaasShell>
   )
@@ -1480,15 +1575,59 @@ export function LoginClient() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('password') === 'updated') {
+      setNotice('Votre mot de passe a été modifié. Vous pouvez vous connecter.')
+      window.history.replaceState(null, '', '/login')
+    }
+  }, [])
 
   return (
     <SaasShell
       eyebrow="Connexion"
       title="Reprendre votre configuration"
       description="Connectez-vous avec votre email professionnel et votre mot de passe Toolia."
+      displayTitle
     >
-      <AppCard className="max-w-xl">
+      <div className={authShellClass}>
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-toolia-info/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-8 h-80 w-80 rounded-full bg-toolia-primary/10 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="max-w-xl">
+            <StatusPill tone="info">Accès client sécurisé</StatusPill>
+            <h2 className="font-heading mt-5 text-3xl font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl">
+              Retrouvez votre espace sans friction.
+            </h2>
+            <p className="mt-4 text-base leading-8 text-toolia-text-secondary">
+              Reprenez votre configuration, consultez vos automatisations et gardez le contrôle sur vos brouillons Gmail.
+            </p>
+            <div className="mt-6 grid gap-3 text-sm text-toolia-text-secondary">
+              {[
+                'Session protégée par Supabase Auth.',
+                'Connexion Gmail gérée séparément par Google.',
+                'Aucun email envoyé automatiquement.',
+              ].map((item) => (
+                <div key={item} className={authMutedCardClass}>
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-toolia-success" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mx-auto w-full max-w-2xl">
+            <div className={authPanelClass}>
+              <div className="mb-7">
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-toolia-info">Connexion Toolia</p>
+                <h3 className="mt-3 text-2xl font-bold text-toolia-text">Se connecter</h3>
+                <HelperText>
+                  Accédez à votre espace Toolia avec votre email professionnel et votre mot de passe.
+                </HelperText>
+              </div>
         <form
           className="flex flex-col gap-5"
           onSubmit={async (event) => {
@@ -1542,33 +1681,394 @@ export function LoginClient() {
             }
           }}
         >
-          <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
+          <label className={authLabelClass}>
             Email
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
+              className={authInputClass}
               placeholder="vous@entreprise.com"
               type="email"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
+          <label className={authLabelClass}>
             Mot de passe
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
+              className={authInputClass}
               placeholder="Votre mot de passe"
               type="password"
               autoComplete="current-password"
             />
           </label>
+          <div className="-mt-2 flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-toolia-text-secondary underline-offset-4 transition hover:text-toolia-text hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </div>
+          {notice && (
+            <p className="rounded-[18px] border border-toolia-success/25 bg-toolia-success/10 px-4 py-3 text-sm font-medium text-toolia-success">
+              {notice}
+            </p>
+          )}
           {error && <p className="text-sm font-medium text-toolia-danger">{error}</p>}
-          <Button type="submit" size="lg" disabled={loading}>
+          <Button
+            type="submit"
+            size="lg"
+            className={authDisabledButtonClass}
+            disabled={loading}
+          >
             {loading ? 'Connexion...' : 'Se connecter'}
           </Button>
         </form>
-      </AppCard>
+              <p className="mt-5 text-center text-sm text-toolia-text-secondary">
+                Pas encore de compte ?{' '}
+                <Link href="/signup" className={authLinkClass}>
+                  Créer mon espace Toolia
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </SaasShell>
+  )
+}
+
+export function ForgotPasswordClient() {
+  const [email, setEmail] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const submitResetRequest = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const submittedEmail = email.trim().toLowerCase()
+
+    setError('')
+    setSuccess('')
+
+    if (!submittedEmail) {
+      setError('Entrez votre email professionnel pour recevoir le lien.')
+      return
+    }
+
+    if (!isValidEmail(submittedEmail)) {
+      setError('Entrez une adresse email valide.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Configuration Supabase indisponible.')
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(submittedEmail, {
+        redirectTo: getPasswordResetRedirectTo(),
+      })
+
+      if (resetError) throw resetError
+
+      setSuccess('Si un compte Toolia existe avec cette adresse, un email de réinitialisation vient d’être envoyé.')
+    } catch {
+      setError('Le lien de réinitialisation n’a pas pu être envoyé pour le moment. Réessayez dans quelques minutes.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <SaasShell
+      eyebrow="Sécurité"
+      title="Réinitialiser votre mot de passe"
+      description="Entrez l’adresse email utilisée pour votre compte Toolia. Nous vous enverrons un lien pour choisir un nouveau mot de passe."
+      displayTitle
+    >
+      <div className={authShellClass}>
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-toolia-info/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-8 h-80 w-80 rounded-full bg-toolia-primary/10 blur-3xl" />
+        <div className="relative mx-auto w-full max-w-2xl">
+          <div className={authPanelClass}>
+            <div className="mb-7">
+              <StatusPill tone="info">Compte Toolia</StatusPill>
+              <h2 className="mt-4 text-2xl font-bold text-toolia-text">Recevoir un lien sécurisé</h2>
+              <HelperText>
+                Le message est envoyé par Supabase Auth. Pour votre sécurité, Toolia ne confirme jamais publiquement si une adresse existe.
+              </HelperText>
+            </div>
+
+            <form className="flex flex-col gap-5" onSubmit={submitResetRequest}>
+              <label className={authLabelClass}>
+                Email professionnel
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className={authInputClass}
+                  placeholder="vous@entreprise.com"
+                  type="email"
+                  autoComplete="email"
+                />
+              </label>
+
+              {success && (
+                <p className="rounded-[18px] border border-toolia-success/25 bg-toolia-success/10 px-4 py-3 text-sm font-medium text-toolia-success">
+                  {success}
+                </p>
+              )}
+              {error && <p className="text-sm font-medium text-toolia-danger">{error}</p>}
+
+              <Button type="submit" size="lg" className="w-full" disabled={loading} isLoading={loading}>
+                {loading ? 'Envoi du lien...' : 'Envoyer le lien de réinitialisation'}
+              </Button>
+
+              <p className="text-center text-sm text-toolia-text-secondary">
+                <Link href="/login" className={authLinkClass}>
+                  Retour à la connexion
+                </Link>
+              </p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </SaasShell>
+  )
+}
+
+export function ResetPasswordClient() {
+  const router = useRouter()
+  const [initializing, setInitializing] = useState(true)
+  const [sessionReady, setSessionReady] = useState(false)
+  const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    const supabase = getSupabaseBrowserClient()
+
+    if (!supabase) {
+      setError('Connexion Supabase indisponible. Vérifiez la configuration de l’application.')
+      setInitializing(false)
+      return
+    }
+    const supabaseClient = supabase
+
+    const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (!active) return
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setSessionReady(true)
+        setError('')
+        setInitializing(false)
+      }
+    })
+
+    async function prepareRecoverySession() {
+      try {
+        const url = new URL(window.location.href)
+        const code = url.searchParams.get('code')
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        let shouldCleanUrl = false
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (sessionError) throw sessionError
+          shouldCleanUrl = true
+        } else if (code) {
+          const { error: exchangeError } = await supabaseClient.auth.exchangeCodeForSession(code)
+          if (exchangeError) throw exchangeError
+          shouldCleanUrl = true
+        }
+
+        const { data } = await supabaseClient.auth.getSession()
+        if (!active) return
+
+        if (!data.session) {
+          setError('Ce lien de réinitialisation est invalide ou expiré.')
+          setSessionReady(false)
+        } else {
+          setSessionReady(true)
+          setError('')
+        }
+
+        if (shouldCleanUrl) {
+          window.history.replaceState(null, '', '/reset-password')
+        }
+      } catch {
+        if (!active) return
+        setError('Ce lien de réinitialisation est invalide ou expiré.')
+        setSessionReady(false)
+      } finally {
+        if (active) setInitializing(false)
+      }
+    }
+
+    void prepareRecoverySession()
+
+    return () => {
+      active = false
+      authListener.subscription.unsubscribe()
+    }
+  }, [])
+
+  const submitNewPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!sessionReady) {
+      setError('Ce lien de réinitialisation est invalide ou expiré.')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Le nouveau mot de passe doit contenir au moins 8 caractères.')
+      return
+    }
+
+    if (password !== passwordConfirmation) {
+      setError('Les deux mots de passe ne correspondent pas.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error('Configuration Supabase indisponible.')
+
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) throw updateError
+
+      setSuccess('Votre mot de passe a été modifié.')
+      setPassword('')
+      setPasswordConfirmation('')
+      await supabase.auth.signOut()
+      window.setTimeout(() => router.push('/login?password=updated'), 1800)
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message.toLowerCase() : String(error ?? '').toLowerCase()
+      const samePasswordRejected =
+        rawMessage.includes('different from the old password') ||
+        rawMessage.includes('same password') ||
+        rawMessage.includes('new password should be different')
+
+      if (samePasswordRejected) {
+        setError('Impossible d’utiliser le même mot de passe que l’ancien. Choisissez un nouveau mot de passe.')
+      } else {
+        setError('Impossible de changer le mot de passe. Vérifiez votre lien ou demandez un nouveau lien de réinitialisation.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (initializing) {
+    return (
+      <SaasShell
+        eyebrow="Sécurité"
+        title="Vérification du lien"
+        description="Toolia prépare la page de réinitialisation de votre mot de passe."
+        displayTitle
+      >
+        <NeutralLoadingState
+          title="Vérification du lien..."
+          description="Nous confirmons la session de récupération avant d’afficher le formulaire."
+        />
+      </SaasShell>
+    )
+  }
+
+  return (
+    <SaasShell
+      eyebrow="Sécurité"
+      title="Choisir un nouveau mot de passe"
+      description="Saisissez un nouveau mot de passe pour sécuriser votre espace Toolia."
+      displayTitle
+    >
+      <div className={authShellClass}>
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-toolia-info/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-8 h-80 w-80 rounded-full bg-toolia-primary/10 blur-3xl" />
+        <div className="relative mx-auto w-full max-w-2xl">
+          <div className={authPanelClass}>
+            <div className="mb-7">
+              <StatusPill tone={sessionReady ? 'success' : 'warning'}>
+                {sessionReady ? 'Lien vérifié' : 'Lien indisponible'}
+              </StatusPill>
+              <h2 className="mt-4 text-2xl font-bold text-toolia-text">Nouveau mot de passe</h2>
+              <HelperText>
+                Utilisez un mot de passe d’au moins 8 caractères. Votre mot de passe Gmail n’est jamais demandé par Toolia.
+              </HelperText>
+            </div>
+
+            {!sessionReady ? (
+              <div className="flex flex-col gap-5">
+                {error && <p className="text-sm font-medium text-toolia-danger">{error}</p>}
+                <Link
+                  href="/forgot-password"
+                  className="inline-flex items-center justify-center rounded-btn bg-toolia-primary px-[18px] py-3 text-base font-medium text-white shadow-btn-primary transition hover:bg-toolia-primary-light"
+                >
+                  Demander un nouveau lien
+                </Link>
+                <Link href="/login" className={`text-center text-sm ${authLinkClass}`}>
+                  Retour à la connexion
+                </Link>
+              </div>
+            ) : (
+              <form className="flex flex-col gap-5" onSubmit={submitNewPassword}>
+                <label className={authLabelClass}>
+                  Nouveau mot de passe
+                  <input
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className={authInputClass}
+                    placeholder="Minimum 8 caractères"
+                    type="password"
+                    autoComplete="new-password"
+                  />
+                </label>
+                <label className={authLabelClass}>
+                  Confirmer le mot de passe
+                  <input
+                    value={passwordConfirmation}
+                    onChange={(event) => setPasswordConfirmation(event.target.value)}
+                    className={authInputClass}
+                    placeholder="Retapez votre nouveau mot de passe"
+                    type="password"
+                    autoComplete="new-password"
+                  />
+                </label>
+
+                {success && (
+                  <p className="rounded-[18px] border border-toolia-success/25 bg-toolia-success/10 px-4 py-3 text-sm font-medium text-toolia-success">
+                    {success}
+                  </p>
+                )}
+                {error && <p className="text-sm font-medium text-toolia-danger">{error}</p>}
+
+                <Button type="submit" size="lg" className="w-full" disabled={loading} isLoading={loading}>
+                  {loading ? 'Modification...' : 'Modifier mon mot de passe'}
+                </Button>
+                <p className="text-center text-sm text-toolia-text-secondary">
+                  <Link href="/login" className={authLinkClass}>
+                    Se connecter
+                  </Link>
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
     </SaasShell>
   )
 }
@@ -1732,6 +2232,7 @@ export function PricingClient() {
           : 'Dans le vrai parcours client, le choix du plan redirigera ensuite vers Stripe Checkout pour finaliser le paiement.'
       }
       showDemoNotice={allowDemoMode && demo}
+      displayTitle
     >
       {activePremiumSubscription && (
         <AppCard>
@@ -2182,6 +2683,7 @@ export function OnboardingWizard() {
     readStorage<TelegramConnectionState | null>(storageKeys.telegram, null),
   )
   const [error, setError] = useState('')
+  const [initializing, setInitializing] = useState(true)
 
   const hydrateAnswers = (answers: OnboardingAnswers | null | undefined) => {
     if (!answers) return
@@ -2227,6 +2729,12 @@ export function OnboardingWizard() {
 
       if (storedSession?.mode === 'account') {
         const persisted = await loadPersistedState(storedSession)
+        if (!active) return
+        if (!persisted?.ok) {
+          setError('Synchronisation de votre configuration impossible pour le moment.')
+          setInitializing(false)
+          return
+        }
         const persistedPlan = normalizePersistedPlan(persisted?.plan || null)
         if (persistedPlan) {
           setPlan(persistedPlan)
@@ -2247,6 +2755,8 @@ export function OnboardingWizard() {
           hydrateAnswers(persisted.answers)
         }
       }
+
+      if (active) setInitializing(false)
     }
 
     void load()
@@ -2257,9 +2767,10 @@ export function OnboardingWizard() {
 
   const selectedCategories = useMemo(() => categories.filter((category) => category.selected), [categories])
   const totalSteps = 5
-  const activePlanLimits = getPlanLimits(plan?.id)
+  const activePlanLimits = plan ? getPlanLimits(plan.id) : getPlanLimits('starter')
   const labelLimit = activePlanLimits.maxLabels
-  const planAllowsCategoryTelegram = activePlanLimits.telegramCategoryAlerts
+  const planAllowsCategoryTelegram = plan ? activePlanLimits.telegramCategoryAlerts : false
+  const planIsStarter = plan?.id === 'starter' || plan?.id === 'essential'
   const demo = isDemoSession(session)
   const telegramConnected = Boolean(telegramConnection?.connected)
   const telegramDisabled =
@@ -2281,6 +2792,7 @@ export function OnboardingWizard() {
           : ''
 
   useEffect(() => {
+    if (initializing) return
     if (planAllowsCategoryTelegram) return
 
     setCategories((current) =>
@@ -2291,7 +2803,22 @@ export function OnboardingWizard() {
     )
     setCustomActions((current) => ({ ...normalizeActions(current), telegram: false }))
     setTelegramPreference('none')
-  }, [planAllowsCategoryTelegram])
+  }, [initializing, planAllowsCategoryTelegram])
+
+  if (initializing) {
+    return (
+      <SaasShell
+        eyebrow="Configuration"
+        title="Vérification de votre configuration"
+        description="Toolia synchronise votre offre, vos réglages et vos connexions avant d’afficher les options."
+      >
+        <NeutralLoadingState
+          title="Vérification de votre configuration..."
+          description="Nous récupérons votre offre et vos réglages pour éviter d’afficher de fausses limitations."
+        />
+      </SaasShell>
+    )
+  }
 
   const updateCategory = (key: string, patch: Partial<WizardCategory>) => {
     setCategories((current) =>
@@ -2513,9 +3040,9 @@ export function OnboardingWizard() {
       <AppCard>
         <div className="mb-6 rounded-card border border-toolia-border-subtle bg-toolia-card-hover p-4">
           <p className="text-sm text-toolia-text-secondary">
-            Plan sélectionné : <span className="font-semibold text-toolia-text">{plan?.name || 'Starter'}</span> · {selectedCategories.length}/{labelLimit} labels utilisés.
+            Plan sélectionné : <span className="font-semibold text-toolia-text">{plan?.name || 'Offre à confirmer'}</span> · {selectedCategories.length}/{labelLimit} labels utilisés.
           </p>
-          {!planAllowsCategoryTelegram && (
+          {!planAllowsCategoryTelegram && planIsStarter && (
             <p className="mt-2 text-sm text-toolia-warning">
               Les alertes Telegram par catégorie sont incluses dans l’offre Pro.
               <Link href="/pricing" className="ml-2 font-semibold text-toolia-text underline">
@@ -3144,6 +3671,13 @@ export function ProfileGeneratorClient() {
       if (active && persisted?.gmail) {
         writeStorage(storageKeys.gmail, persisted.gmail)
       }
+      if (active) {
+        const persistedPlan = normalizePersistedPlan(persisted?.plan || null)
+        if (persistedPlan) {
+          setPlan(persistedPlan)
+          writeStorage(storageKeys.plan, persistedPlan)
+        }
+      }
 
       if (generatedOnce.current) return
       generatedOnce.current = true
@@ -3241,10 +3775,12 @@ export function ProfileGeneratorClient() {
         telegramCategoriesCount: profile.categories.filter((category) => category.actions.telegram).length,
       })
     : null
-  const summaryPlanAllowsTelegram = getPlanLimits(plan?.id).telegramCategoryAlerts
-  const telegramSummaryLabel = !summaryPlanAllowsTelegram
-    ? 'Indisponibles avec l’offre Starter'
-    : telegramLabels[(answers?.telegramPreference || 'none') as OnboardingAnswers['telegramPreference']]
+  const summaryPlanAllowsTelegram = plan ? getPlanLimits(plan.id).telegramCategoryAlerts : false
+  const telegramSummaryLabel = !plan
+    ? 'Offre à confirmer'
+    : !summaryPlanAllowsTelegram
+      ? 'Indisponibles avec l’offre Starter'
+      : telegramLabels[(answers?.telegramPreference || 'none') as OnboardingAnswers['telegramPreference']]
 
   return (
     <SaasShell
@@ -3301,7 +3837,7 @@ export function ProfileGeneratorClient() {
           <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill tone="success">Configuration prête</StatusPill>
-              <StatusPill tone="info">{plan?.name || 'Plan Starter'}</StatusPill>
+              <StatusPill tone="info">{plan?.name || 'Offre à confirmer'}</StatusPill>
               {recommendedPlan && (
                 <StatusPill tone={recommendedPlan.id === 'premium' ? 'warning' : 'info'}>
                   {recommendedPlan.id === 'premium'
@@ -3383,6 +3919,7 @@ export function ActivationPreviewClient() {
   const [session, setSession] = useState<DemoSession | null>(null)
   const [plan, setPlan] = useState<PlanOption | null>(null)
   const [gmailState, setGmailState] = useState<GmailConnectionState | null>(null)
+  const [initializing, setInitializing] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -3417,7 +3954,11 @@ export function ActivationPreviewClient() {
       }
 
       const persisted = await loadPersistedState(storedSession)
-      if (!active || !persisted?.ok) return
+      if (!active) return
+      if (!persisted?.ok) {
+        setInitializing(false)
+        return
+      }
 
       if (persisted.gmail) {
         setGmailState(persisted.gmail)
@@ -3428,6 +3969,7 @@ export function ActivationPreviewClient() {
         setPlan(persistedPlan)
         if (persistedPlan) writeStorage(storageKeys.plan, persistedPlan)
       }
+      setInitializing(false)
     }
 
     void load()
@@ -3549,6 +4091,21 @@ export function ActivationPreviewClient() {
     }
   }
 
+  if (initializing) {
+    return (
+      <SaasShell
+        eyebrow="Activation"
+        title="Dernière vérification"
+        description="Toolia vérifie votre configuration, votre offre et votre connexion Gmail avant l’activation."
+      >
+        <NeutralLoadingState
+          title="Vérification de votre configuration..."
+          description="Nous confirmons les données nécessaires avant d’afficher les éventuels points à compléter."
+        />
+      </SaasShell>
+    )
+  }
+
   return (
     <SaasShell
       eyebrow="Activation"
@@ -3663,6 +4220,8 @@ export function DashboardClient() {
   const [incomingEmail, setIncomingEmail] = useState(
     'Bonjour, pouvez-vous me confirmer vos disponibilités cette semaine pour avancer sur notre projet ? J’aimerais aussi connaître les prochaines étapes et les éléments dont vous avez besoin de notre côté.',
   )
+  const [dashboardLoaded, setDashboardLoaded] = useState(false)
+  const [dashboardLoadError, setDashboardLoadError] = useState('')
   const [gmailBusy, setGmailBusy] = useState(false)
   const [learningBusy, setLearningBusy] = useState(false)
   const [classificationBusy, setClassificationBusy] = useState(false)
@@ -3682,12 +4241,7 @@ export function DashboardClient() {
       }
 
       setSession(storedSession)
-      setProfile(normalizeProfile(readStorage<AutomationProfile | null>(storageKeys.profile, null)))
-      setState(readStorage<DashboardState | null>(storageKeys.dashboard, null))
-      setPlan(getStoredPlan())
-      setAnswers(readStorage<OnboardingAnswers | null>(storageKeys.answers, null))
-      setGmailState(readStorage<GmailConnectionState | null>(storageKeys.gmail, null))
-      setTelegramState(readStorage<TelegramConnectionState | null>(storageKeys.telegram, null))
+      setDashboardLoadError('')
       const dashboardSearchParams = new URLSearchParams(window.location.search)
       const gmailStatus = dashboardSearchParams.get('gmail')
       const upgradeStatus = dashboardSearchParams.get('upgrade')
@@ -3701,7 +4255,12 @@ export function DashboardClient() {
       if (gmailStatus === 'failed') setGmailResult('La connexion Gmail a échoué.')
 
       const persisted = await loadPersistedState(storedSession)
-      if (!active || !persisted?.ok) return
+      if (!active) return
+      if (!persisted?.ok) {
+        setDashboardLoadError('Synchronisation de votre espace impossible pour le moment.')
+        setDashboardLoaded(true)
+        return
+      }
 
       const persistedPlan = normalizePersistedPlan(persisted.plan)
       const persistedProfile = normalizeProfile(persisted.profile || null)
@@ -3723,23 +4282,20 @@ export function DashboardClient() {
       if (persisted.dashboard) writeStorage(storageKeys.dashboard, persisted.dashboard)
       else removeStorage(storageKeys.dashboard)
 
-      if (persisted.gmail) {
-        setGmailState(persisted.gmail)
-        writeStorage(storageKeys.gmail, persisted.gmail)
-      }
+      setGmailState(persisted.gmail || null)
+      if (persisted.gmail) writeStorage(storageKeys.gmail, persisted.gmail)
+      else removeStorage(storageKeys.gmail)
 
-      if (persisted.telegram) {
-        setTelegramState(persisted.telegram)
-        writeStorage(storageKeys.telegram, persisted.telegram)
-      }
+      setTelegramState(persisted.telegram || null)
+      if (persisted.telegram) writeStorage(storageKeys.telegram, persisted.telegram)
+      else removeStorage(storageKeys.telegram)
 
-      if (persisted.ai) {
-        setAiStatus(persisted.ai)
-      }
+      setAiStatus(persisted.ai || null)
 
       setUsage(persisted.usage || null)
       setBilling(persisted.billing || null)
       setStyleProfile(persisted.styleProfile || null)
+      setDashboardLoaded(true)
 
       if (upgradeStatus === 'success') {
         ;[1, 2, 3, 4, 5].forEach((attempt) => {
@@ -3765,10 +4321,13 @@ export function DashboardClient() {
               setUsage(refreshed.usage || null)
               setBilling(refreshed.billing || null)
               setStyleProfile(refreshed.styleProfile || null)
-              if (refreshed.telegram) {
-                setTelegramState(refreshed.telegram)
-                writeStorage(storageKeys.telegram, refreshed.telegram)
-              }
+              setGmailState(refreshed.gmail || null)
+              if (refreshed.gmail) writeStorage(storageKeys.gmail, refreshed.gmail)
+              else removeStorage(storageKeys.gmail)
+              setTelegramState(refreshed.telegram || null)
+              if (refreshed.telegram) writeStorage(storageKeys.telegram, refreshed.telegram)
+              else removeStorage(storageKeys.telegram)
+              setAiStatus(refreshed.ai || null)
 
               if (refreshedPlan?.paid) {
                 setBillingResult(`Offre ${refreshedPlan.name} active.`)
@@ -3781,7 +4340,11 @@ export function DashboardClient() {
       }
     }
 
-    void load()
+    void load().catch(() => {
+      if (!active) return
+      setDashboardLoadError('Synchronisation de votre espace impossible pour le moment.')
+      setDashboardLoaded(true)
+    })
     return () => {
       active = false
     }
@@ -3794,7 +4357,7 @@ export function DashboardClient() {
   const configuredDraftCount = profile?.categories.filter((category) => category.actions.draft).length || 0
   const draftCount = configuredDraftCount + (state?.draftTestCount || 0)
   const telegramCount = profile?.categories.filter((category) => category.actions.telegram).length || 0
-  const telegramAllowedByPlan = getPlanLimits(plan?.id).telegramCategoryAlerts
+  const telegramAllowedByPlan = plan ? getPlanLimits(plan.id).telegramCategoryAlerts : false
   const activeLabels = profile?.categories.map((category) => category.name).join(', ') || 'Aucun label actif'
   const enabledActionKeys = actionOrder.filter((action) =>
     profile?.categories.some((category) => category.actions[action]),
@@ -4014,12 +4577,12 @@ export function DashboardClient() {
     }
   }
 
-  const connectGmailFromDashboard = async () => {
+  const connectGmailFromDashboard = async (forceConsent = false) => {
     setGmailResult('')
     setGmailBusy(true)
 
     try {
-      await startGoogleOAuth('dashboard')
+      await startGoogleOAuth('dashboard', { forceConsent })
     } catch (error) {
       setGmailResult(error instanceof Error ? error.message : 'Connexion Gmail impossible.')
       setGmailBusy(false)
@@ -4337,6 +4900,41 @@ export function DashboardClient() {
     }
   }
 
+  if (!dashboardLoaded) {
+    return (
+      <SaasShell
+        eyebrow="Dashboard"
+        title="Chargement de votre espace Toolia"
+        description="Toolia synchronise votre offre, vos connexions et votre automatisation."
+      >
+        <NeutralLoadingState
+          title="Chargement de votre espace Toolia..."
+          description="Nous récupérons votre statut réel avant d’afficher les alertes Gmail, Telegram, IA ou automatisation."
+        />
+      </SaasShell>
+    )
+  }
+
+  if (dashboardLoadError) {
+    return (
+      <SaasShell
+        eyebrow="Dashboard"
+        title="Synchronisation impossible"
+        description="Votre espace Toolia reste protégé, mais l’état serveur n’a pas pu être confirmé."
+      >
+        <AppCard>
+          <StatusPill tone="warning">Synchronisation</StatusPill>
+          <p className="mt-4 text-sm leading-6 text-toolia-text-secondary">{dashboardLoadError}</p>
+          <div className="mt-6">
+            <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
+          </div>
+        </AppCard>
+      </SaasShell>
+    )
+  }
+
   if (!validSession || !profile || !state) {
     const startHref = validSession ? '/onboarding' : '/signup'
     const startLabel = validSession ? 'Automatiser maintenant' : 'Créer mon espace Toolia'
@@ -4412,7 +5010,7 @@ export function DashboardClient() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={connectGmailFromDashboard}
+                  onClick={() => void connectGmailFromDashboard(true)}
                   disabled={gmailBusy}
                   isLoading={gmailBusy}
                 >
@@ -4428,13 +5026,24 @@ export function DashboardClient() {
               >
                 Créer / vérifier les labels Gmail
               </Button>
+              {!gmailNeedsScopeUpgrade && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => void connectGmailFromDashboard(true)}
+                  disabled={gmailBusy}
+                  isLoading={gmailBusy}
+                >
+                  Reconnecter Gmail
+                </Button>
+              )}
             </div>
           ) : (
             <Button
               type="button"
               variant="outline"
               className="mt-auto"
-              onClick={connectGmailFromDashboard}
+              onClick={() => void connectGmailFromDashboard(false)}
               disabled={gmailBusy}
               isLoading={gmailBusy}
             >
@@ -4638,7 +5247,7 @@ export function DashboardClient() {
             </p>
           </div>
           {gmailNeedsModifyScope && (
-            <Button type="button" variant="outline" onClick={connectGmailFromDashboard} disabled={gmailBusy} isLoading={gmailBusy}>
+            <Button type="button" variant="outline" onClick={() => void connectGmailFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
           )}
@@ -4673,11 +5282,11 @@ export function DashboardClient() {
           )}
           {canCreateAiDraftNow && (
             <Button type="button" onClick={createAiTestDraft} disabled={draftBusy} isLoading={draftBusy}>
-              {draftBusy ? 'Génération du brouillon…' : 'Créer un brouillon IA'}
+              {draftBusy ? 'Génération du brouillon⬦' : 'Créer un brouillon IA'}
             </Button>
           )}
           {draftBusy && (
-            <p className="text-sm font-medium text-toolia-text-secondary">Génération du brouillon…</p>
+            <p className="text-sm font-medium text-toolia-text-secondary">Génération du brouillon⬦</p>
           )}
           {draftError && (
             <div className="rounded-card border border-toolia-warning/40 bg-toolia-warning/10 p-4">
@@ -4715,7 +5324,7 @@ export function DashboardClient() {
             </p>
           </div>
           {gmailNeedsModifyScope && (
-            <Button type="button" variant="outline" onClick={connectGmailFromDashboard} disabled={gmailBusy} isLoading={gmailBusy}>
+            <Button type="button" variant="outline" onClick={() => void connectGmailFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
           )}
@@ -4745,7 +5354,7 @@ export function DashboardClient() {
           {canAnalyzeWritingStyleNow && (
             <Button type="button" onClick={analyzeWritingStyle} disabled={learningBusy} isLoading={learningBusy}>
               {learningBusy
-                ? 'Analyse du style…'
+                ? 'Analyse du style⬦'
                 : styleProfile
                   ? 'Ré-analyser mon style'
                   : 'Analyser mes emails envoyés'}
@@ -4790,7 +5399,7 @@ export function DashboardClient() {
             </p>
           </div>
           {gmailNeedsModifyScope && (
-            <Button type="button" variant="outline" onClick={connectGmailFromDashboard} disabled={gmailBusy} isLoading={gmailBusy}>
+            <Button type="button" variant="outline" onClick={() => void connectGmailFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
           )}
@@ -4852,7 +5461,7 @@ export function DashboardClient() {
               disabled={classificationBusy}
               isLoading={classificationBusy}
             >
-              {classificationBusy ? 'Analyse des emails…' : `Analyser ${classificationLimit} emails`}
+              {classificationBusy ? 'Analyse des emails⬦' : `Analyser ${classificationLimit} emails`}
             </Button>
           )}
           {classificationResult && <p className="text-sm font-medium text-toolia-success">{classificationResult}</p>}
@@ -5028,6 +5637,8 @@ export function SettingsClient() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [settingsLoadError, setSettingsLoadError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -5042,23 +5653,31 @@ export function SettingsClient() {
       }
 
       setSession(storedSession)
-      setProfile(normalizeProfile(readStorage<AutomationProfile | null>(storageKeys.profile, null)))
-      setAnswers(readStorage<OnboardingAnswers | null>(storageKeys.answers, null))
-      setPlan(getStoredPlan())
+      setSettingsLoadError('')
 
       const persisted = await loadPersistedState(storedSession)
-      if (!active || !persisted?.ok) return
+      if (!active) return
+      if (!persisted?.ok) {
+        setSettingsLoadError('Synchronisation de votre configuration impossible pour le moment.')
+        setSettingsLoaded(true)
+        return
+      }
 
       const persistedPlan = normalizePersistedPlan(persisted.plan)
       const persistedProfile = normalizeProfile(persisted.profile || null)
 
-      if (persistedPlan) setPlan(persistedPlan)
-      if (persisted.answers) setAnswers(persisted.answers)
-      if (persistedProfile) setProfile(persistedProfile)
-      if (persisted.dashboard?.subscriptionStatus) setSubscriptionStatus(persisted.dashboard.subscriptionStatus)
+      setPlan(persistedPlan)
+      setAnswers(persisted.answers || null)
+      setProfile(persistedProfile)
+      setSubscriptionStatus(persisted.dashboard?.subscriptionStatus || null)
+      setSettingsLoaded(true)
     }
 
-    void load()
+    void load().catch(() => {
+      if (!active) return
+      setSettingsLoadError('Synchronisation de votre configuration impossible pour le moment.')
+      setSettingsLoaded(true)
+    })
     return () => {
       active = false
     }
@@ -5105,6 +5724,41 @@ export function SettingsClient() {
     } finally {
       setDeletingAccount(false)
     }
+  }
+
+  if (!settingsLoaded) {
+    return (
+      <SaasShell
+        eyebrow="Paramètres"
+        title="Chargement de votre configuration"
+        description="Toolia synchronise vos réglages avant d’afficher les options de modification."
+      >
+        <NeutralLoadingState
+          title="Vérification de votre automatisation..."
+          description="Nous récupérons votre configuration active pour éviter d’afficher un état incomplet."
+        />
+      </SaasShell>
+    )
+  }
+
+  if (settingsLoadError) {
+    return (
+      <SaasShell
+        eyebrow="Paramètres"
+        title="Synchronisation impossible"
+        description="Votre configuration n’a pas pu être confirmée pour le moment."
+      >
+        <AppCard>
+          <StatusPill tone="warning">Synchronisation</StatusPill>
+          <p className="mt-4 text-sm leading-6 text-toolia-text-secondary">{settingsLoadError}</p>
+          <div className="mt-6">
+            <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
+          </div>
+        </AppCard>
+      </SaasShell>
+    )
   }
 
   return (
@@ -5249,3 +5903,6 @@ export function SettingsClient() {
     </SaasShell>
   )
 }
+
+
+
