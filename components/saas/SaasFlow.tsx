@@ -103,7 +103,6 @@ type PlanOption = {
   features: string[]
   featured?: boolean
   paid?: boolean
-  promoCode?: string | null
 }
 
 type DashboardState = {
@@ -457,7 +456,7 @@ function normalizePersistedPlan(plan: Partial<PlanOption> | null | undefined) {
   const defaults = planOptions.find((option) => option.id === normalizedId)
   if (!defaults) return null
 
-  return { ...plan, ...defaults, id: normalizedId, paid: plan.paid, promoCode: plan.promoCode }
+  return { ...plan, ...defaults, id: normalizedId, paid: plan.paid }
 }
 
 function getPlanOptionById(planId: string | null | undefined) {
@@ -2117,8 +2116,6 @@ export function PricingClient() {
   const router = useRouter()
   const [session, setSession] = useState<DemoSession | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null)
-  const [promoCode, setPromoCode] = useState('')
-  const [promoApplied, setPromoApplied] = useState(false)
   const [checkoutInfo, setCheckoutInfo] = useState('')
   const [checkoutError, setCheckoutError] = useState('')
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<string | null>(null)
@@ -2214,7 +2211,7 @@ export function PricingClient() {
     }
 
     if (demo) {
-      const nextPlan = { ...plan, paid: true, promoCode: promoCode.trim() || null }
+      const nextPlan = { ...plan, paid: true }
       writeStorage(storageKeys.plan, nextPlan)
       router.push('/onboarding')
       return
@@ -2318,31 +2315,9 @@ export function PricingClient() {
         </AppCard>
       )}
       <AppCard>
-        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-          <label className="flex flex-col gap-2 text-sm font-medium text-toolia-text">
-            Code promo
-            <input
-              value={promoCode}
-              onChange={(event) => {
-                setPromoCode(event.target.value)
-                setPromoApplied(false)
-              }}
-              className="rounded-card border border-toolia-border-subtle bg-toolia-card-hover px-4 py-3 text-toolia-text outline-none focus:border-toolia-primary"
-              placeholder="Ex : TOOLIA20"
-            />
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!promoCode.trim()}
-            onClick={() => setPromoApplied(true)}
-          >
-            Appliquer
-          </Button>
-        </div>
-        {promoApplied && (
-          <p className="mt-3 text-sm font-medium text-toolia-success">Code promo appliqué.</p>
-        )}
+        <p className="text-sm text-toolia-text-secondary">
+          Si vous avez un code promo, vous pourrez l’ajouter sur la page de paiement sécurisée Stripe.
+        </p>
         {checkoutInfo && <p className="mt-3 text-sm font-medium text-toolia-text-secondary">{checkoutInfo}</p>}
         {checkoutError && <p className="mt-3 text-sm font-medium text-toolia-danger">{checkoutError}</p>}
       </AppCard>
