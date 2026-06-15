@@ -13,17 +13,37 @@ const calmSignals = [
 export const Values: React.FC = () => {
   const sectionRef = React.useRef<HTMLElement>(null)
   const reduceMotion = useReducedMotion()
-  const [isDesktop, setIsDesktop] = React.useState<boolean | null>(null)
+  const [canUseScrollExpansion, setCanUseScrollExpansion] = React.useState(false)
 
   React.useEffect(() => {
-    const media = window.matchMedia('(min-width: 768px)')
-    const update = () => setIsDesktop(media.matches)
+    const desktopMedia = window.matchMedia('(min-width: 768px)')
+    const coarsePointerMedia = window.matchMedia('(pointer: coarse)')
+    const hoverNoneMedia = window.matchMedia('(hover: none)')
+    const isIosLike = /iPad|iPhone|iPod/.test(window.navigator.userAgent) ||
+      (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1)
+
+    const update = () => {
+      setCanUseScrollExpansion(desktopMedia.matches && !coarsePointerMedia.matches && !hoverNoneMedia.matches && !isIosLike)
+    }
 
     update()
-    media.addEventListener('change', update)
+    const mediaQueries = [desktopMedia, coarsePointerMedia, hoverNoneMedia]
+    mediaQueries.forEach((media) => {
+      if (typeof media.addEventListener === 'function') {
+        media.addEventListener('change', update)
+      } else {
+        media.addListener(update)
+      }
+    })
 
     return () => {
-      media.removeEventListener('change', update)
+      mediaQueries.forEach((media) => {
+        if (typeof media.removeEventListener === 'function') {
+          media.removeEventListener('change', update)
+        } else {
+          media.removeListener(update)
+        }
+      })
     }
   }, [])
 
@@ -38,14 +58,7 @@ export const Values: React.FC = () => {
   const desktopPanelOpacity = useTransform(scrollYProgress, [0, 0.14], [0.92, 1])
   const desktopPanelY = useTransform(scrollYProgress, [0.1, 0.68], [26, 0])
 
-  const mobilePanelWidth = useTransform(scrollYProgress, [0.1, 0.58], ['92vw', '100vw'])
-  const mobilePanelHeight = useTransform(scrollYProgress, [0.1, 0.58], ['52svh', '92svh'])
-  const mobilePanelRadius = useTransform(scrollYProgress, [0.1, 0.58], ['1.75rem', '0rem'])
-  const mobilePanelOpacity = useTransform(scrollYProgress, [0, 0.14], [0.96, 1])
-  const mobilePanelY = useTransform(scrollYProgress, [0.1, 0.58], [16, 0])
-
-  const animateDesktopExpansion = Boolean(isDesktop === true && !reduceMotion)
-  const animateMobileExpansion = Boolean(isDesktop === false && !reduceMotion)
+  const animateDesktopExpansion = Boolean(canUseScrollExpansion && !reduceMotion)
   return (
     <section
       ref={sectionRef}
@@ -53,18 +66,14 @@ export const Values: React.FC = () => {
       className={
         animateDesktopExpansion
           ? 'relative h-[150vh] overflow-clip bg-toolia-bg-main'
-          : animateMobileExpansion
-            ? 'relative h-[135svh] overflow-clip bg-toolia-bg-main'
-            : 'relative overflow-hidden bg-toolia-bg-main px-4 py-10 sm:px-6 md:px-8 md:py-16 xl:px-10'
+          : 'relative overflow-hidden bg-toolia-bg-main px-4 py-10 sm:px-6 md:px-8 md:py-16 xl:px-10'
       }
     >
       <div
         className={
           animateDesktopExpansion
             ? 'sticky top-0 flex h-screen items-center justify-center overflow-hidden'
-            : animateMobileExpansion
-              ? 'sticky top-0 flex h-[100svh] items-center justify-center overflow-hidden'
-              : 'mx-auto flex w-full max-w-[1560px] items-center justify-center'
+            : 'mx-auto flex w-full max-w-[1560px] items-center justify-center'
         }
       >
         <motion.div
@@ -78,15 +87,7 @@ export const Values: React.FC = () => {
                   opacity: desktopPanelOpacity,
                   borderRadius: desktopPanelRadius,
                 }
-              : animateMobileExpansion
-                ? {
-                  width: mobilePanelWidth,
-                  height: mobilePanelHeight,
-                  y: mobilePanelY,
-                  opacity: mobilePanelOpacity,
-                  borderRadius: mobilePanelRadius,
-                }
-                : undefined
+              : undefined
           }
         >
           {/* Calm water video only. Keep it forward-only: no ping-pong/reverse loop. */}

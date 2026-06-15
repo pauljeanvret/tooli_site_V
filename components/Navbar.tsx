@@ -67,6 +67,24 @@ export const Navbar: React.FC = () => {
 
   const profileInitial = (account?.name || account?.email || 'T').slice(0, 1).toUpperCase()
 
+  const handleBrandClick = () => {
+    try {
+      window.sessionStorage.setItem('tooliaForceIntro', '1')
+    } catch {
+      // Storage can be unavailable in private or restricted browsing modes.
+    }
+
+    setIsOpen(false)
+    setAccountMenuOpen(false)
+
+    if (window.location.pathname === '/') {
+      window.dispatchEvent(new Event('toolia:playIntro'))
+      return
+    }
+
+    window.location.href = '/'
+  }
+
   const handleSmoothScroll = (href: string) => {
     const link = copy.navbar.nav.find((item) => item.href === href)
     if (link) {
@@ -91,9 +109,7 @@ export const Navbar: React.FC = () => {
           <motion.div className="font-bold text-lg" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
             <button
               type="button"
-              onClick={() => {
-                window.location.href = '/'
-              }}
+              onClick={handleBrandClick}
               className="flex items-center gap-2"
               aria-label="Retour à l’accueil Toolia"
             >
