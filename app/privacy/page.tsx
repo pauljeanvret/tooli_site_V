@@ -143,6 +143,9 @@ export default function PrivacyPage() {
                 <p className="mt-3 text-sm leading-7 text-toolia-text-secondary">
                   Toolia’s use and transfer of information received from Google APIs complies with the Google API Services User Data Policy, including the Limited Use requirements.
                 </p>
+                <p className="mt-3 text-sm leading-7 text-toolia-text-secondary">
+                  Toolia does not use Google user data to train, improve, or fine-tune generalized artificial intelligence or machine learning models. Google user data is only processed to provide the user-facing Gmail automation features configured by the user, such as email classification, labeling, priority detection, and draft preparation.
+                </p>
               </div>
             </div>
           </article>
