@@ -117,6 +117,20 @@ export const Hero: React.FC = () => {
               {primaryCta}
             </Button>
             <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                trackEvent('cta_click', {
+                  cta_location: 'hero',
+                  cta_label: 'Diagnostiquer ma boîte mail',
+                })
+                window.location.href = '/diagnostic'
+              }}
+              className="w-full bg-white/60 backdrop-blur-sm sm:w-auto dark:bg-white/10"
+            >
+              Diagnostiquer ma boîte mail
+            </Button>
+            <Button
               variant="secondary"
               size="lg"
               onClick={() => {
