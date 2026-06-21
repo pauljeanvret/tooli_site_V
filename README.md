@@ -196,21 +196,34 @@ Le worker limite les appels IA avant cron automatique :
 - classification locale par rÃ¨gles pour les emails Ã©vidents : no-reply/newsletters ignorÃ©s, factures/urgences/clients classÃ©s sans LLM quand la catÃ©gorie existe
 - classification LLM en lots compacts uniquement pour les emails ambigus
 - brouillons routÃ©s par complexitÃ© avec `LLM_DRAFT_SMALL_MODEL`, `LLM_DRAFT_MEDIUM_MODEL`, `LLM_DRAFT_COMPLEX_MODEL`
-- intervalles minimaux par plan : `WORKER_MIN_MINUTES_BETWEEN_RUNS_STARTER`, `WORKER_MIN_MINUTES_BETWEEN_RUNS_PRO`, `WORKER_MIN_MINUTES_BETWEEN_RUNS_PREMIUM`
+- intervalles minimaux par plan définis dans `lib/saas/plan-config.ts` : Starter 30 min, Pro 10 min, Premium 5 min
 - `force=1` est rÃ©servÃ© aux tests manuels
 - estimation de coÃ»t optionnelle via les variables `LLM_*_INPUT_COST_PER_1M` et `LLM_*_OUTPUT_COST_PER_1M`
 
 En dÃ©veloppement, la rÃ©ponse JSON expose notamment `skippedBeforeAi`, `skippedByRules`, `ruleClassified`, `emailsSentToLlm`, `llmClassificationCalls`, `draftGenerationCalls`, `classificationModels`, `draftModels`, `promptTokensEstimated`, `completionTokensEstimated` et `estimatedCost`.
 
+### Admin finance et couts IA
+
+La page interne `/admin/finance` est reservee aux comptes listes dans `ADMIN_EMAILS`.
+Elle affiche, par mois et par client :
+
+- revenu mensuel estime depuis le plan actif ;
+- cout IA estime depuis `ai_usage_events` ;
+- profit et marge estimes ;
+- appels IA par action, modele et client.
+
+Les logs de cout ne stockent pas les prompts, corps Gmail, objets d'emails, jetons OAuth, cles API ou secrets.
+Les revenus sont estimes tant que les montants exacts des factures Stripe ne sont pas historises dans Supabase.
+
 ### Delais MVP par offre
 
 Les delais minimums entre deux passages automatiques du worker sont alignes sur les valeurs MVP suivantes :
 
-- Starter : `WORKER_MIN_MINUTES_BETWEEN_RUNS_STARTER=30`
-- Pro : `WORKER_MIN_MINUTES_BETWEEN_RUNS_PRO=10`
-- Premium : `WORKER_MIN_MINUTES_BETWEEN_RUNS_PREMIUM=5`
+- Starter : 30 minutes
+- Pro : 10 minutes
+- Premium : 5 minutes
 
-Ces valeurs ne configurent pas le cron elles-memes. Elles servent de garde-fou cote worker quand une execution externe appelle `/api/worker/process-gmail`.
+Ces valeurs ne configurent pas le cron elles-memes. Elles sont définies côté code dans `PLAN_GMAIL_INTERVAL_MINUTES` et servent de garde-fou côté worker quand une exécution externe appelle `/api/worker/process-gmail`.
 
 ## Telegram
 

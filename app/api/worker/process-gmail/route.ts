@@ -1,7 +1,8 @@
 import { randomUUID, timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { google, type gmail_v1 } from 'googleapis'
-import { classifyIncomingEmailsBatch, cleanAiDraftBody, generateAiDraftReply, type DraftComplexity } from '@/lib/ai/provider'
+import { recordAiCostUsage, type AiCostUsageInput } from '@/lib/ai-costs'
+import { classifyIncomingEmailsBatch, cleanAiDraftBody, generateAiDraftReply, getAiProviderStatus, type DraftComplexity } from '@/lib/ai/provider'
 import { base64UrlEncode, buildGmailDraftMime } from '@/lib/saas/gmail-draft-mime'
 import {
   ensureRealGmailLabels,
@@ -14,6 +15,7 @@ import {
   isLikelyAutomatedMessage,
 } from '@/lib/saas/gmail-message-utils'
 import { checkQuota, getCurrentMonthKey, recordEmailProcessed, recordUsage } from '@/lib/saas/plan-limits'
+import { getPlanGmailIntervalMinutes } from '@/lib/saas/plan-config'
 import { automationProfileSchema, categoryActionsSchema, type AutomationProfile } from '@/lib/saas/schemas'
 import { getWorkerSubscriptionAccessForUser } from '@/lib/saas/subscription-store'
 import { getWritingStyleProfile } from '@/lib/saas/supabase-store'
@@ -709,6 +711,16 @@ function sumNullable(a: number | null, b: number | null) {
   return (a || 0) + (b || 0)
 }
 
+type WorkerCostBreakdown = {
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  inputCostEur: number
+  outputCostEur: number
+  totalCostEur: number
+  costAvailable: boolean
+}
+
 function estimateTokensFromChars(chars: number) {
   return Math.max(1, Math.ceil(chars / 4))
 }
@@ -754,10 +766,12 @@ function addCostEstimate(input: {
   const names = costEnvNames(input.kind, input.complexity)
   const inputCostPerMillion = readCostPerMillion(names.input)
   const outputCostPerMillion = readCostPerMillion(names.output)
+  const inputCostEur = inputCostPerMillion === null ? 0 : (inputTokens * inputCostPerMillion) / 1_000_000
+  const outputCostEur = outputCostPerMillion === null ? 0 : (outputTokens * outputCostPerMillion) / 1_000_000
   const estimatedCost =
     inputCostPerMillion === null || outputCostPerMillion === null
       ? null
-      : (inputTokens * inputCostPerMillion + outputTokens * outputCostPerMillion) / 1_000_000
+      : inputCostEur + outputCostEur
 
   input.debug.promptTokensEstimated += inputTokens
   input.debug.completionTokensEstimated += outputTokens
@@ -770,7 +784,17 @@ function addCostEstimate(input: {
     complexity: input.complexity,
   })
 
-  if (estimatedCost === null) return
+  if (estimatedCost === null) {
+    return {
+      promptTokens: inputTokens,
+      completionTokens: outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      inputCostEur: 0,
+      outputCostEur: 0,
+      totalCostEur: 0,
+      costAvailable: false,
+    } satisfies WorkerCostBreakdown
+  }
 
   input.debug.estimatedCost.available = true
   input.debug.estimatedCost.total = (input.debug.estimatedCost.total || 0) + estimatedCost
@@ -779,6 +803,16 @@ function addCostEstimate(input: {
   } else {
     input.debug.estimatedCost.drafts = (input.debug.estimatedCost.drafts || 0) + estimatedCost
   }
+
+  return {
+    promptTokens: inputTokens,
+    completionTokens: outputTokens,
+    totalTokens: inputTokens + outputTokens,
+    inputCostEur,
+    outputCostEur,
+    totalCostEur: estimatedCost,
+    costAvailable: true,
+  } satisfies WorkerCostBreakdown
 }
 
 function pushEmailDebug(debug: WorkerDebugSummary, item: WorkerEmailDebug) {
@@ -789,6 +823,32 @@ function pushEmailDebug(debug: WorkerDebugSummary, item: WorkerEmailDebug) {
   if (process.env.NODE_ENV !== 'production') {
     console.info('[worker/process-gmail] email decision', item)
   }
+}
+
+async function safeRecordAiCostUsage(input: AiCostUsageInput) {
+  try {
+    await recordAiCostUsage(input)
+  } catch (error) {
+    console.warn('[worker/process-gmail] AI cost usage logging failed', {
+      userId: input.userId,
+      actionType: input.actionType,
+      provider: input.provider,
+      model: input.model,
+      message: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+function getConfiguredDraftModelForComplexity(complexity: DraftComplexity | null) {
+  const aiStatus = getAiProviderStatus()
+  const model =
+    complexity === 'small'
+      ? aiStatus.draftSmallModel
+      : complexity === 'complex'
+        ? aiStatus.draftComplexModel
+        : aiStatus.draftMediumModel
+
+  return { provider: aiStatus.provider, model }
 }
 
 function aggregateDebugSummaries(summaries: WorkerUserSummary[]): WorkerDebugSummary {
@@ -923,10 +983,7 @@ async function getCandidateAutomationProfiles(maxUsers: number) {
 }
 
 function minMinutesBetweenRuns(plan: string | null | undefined) {
-  const normalizedPlan = plan === 'premium' ? 'PREMIUM' : plan === 'pro' ? 'PRO' : 'STARTER'
-  const fallback = normalizedPlan === 'PREMIUM' ? 5 : normalizedPlan === 'PRO' ? 10 : 30
-  const value = Number(process.env[`WORKER_MIN_MINUTES_BETWEEN_RUNS_${normalizedPlan}`] || fallback)
-  return Number.isFinite(value) && value >= 0 ? value : fallback
+  return getPlanGmailIntervalMinutes(plan)
 }
 
 function shouldSkipForWorkerInterval(row: AutomationProfileRow, plan: string | null | undefined, force: boolean) {
@@ -1237,6 +1294,7 @@ function buildTelegramAlertText(input: {
 async function processUserProfile(row: AutomationProfileRow, options: Pick<WorkerOptions, 'maxEmailsPerUser' | 'force'>): Promise<WorkerUserSummary> {
   const maxEmailsPerUser = options.maxEmailsPerUser
   const debug = makeDebugSummary()
+  const runId = randomUUID()
   const subscriptionAccess = await getWorkerSubscriptionAccessForUser(row.user_id)
   if (!subscriptionAccess.allowed) {
     await logWorkerEvent({
@@ -1537,13 +1595,37 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
             })
             draftModel = draftContent.model
             addUnique(debug.draftModels, draftContent.model)
-            addCostEstimate({
+            const draftCost = addCostEstimate({
               debug,
               kind: 'draft',
               model: draftContent.model,
               inputChars: incomingEmailForDraft.length + 1800,
               outputChars: `${draftContent.subject}\n${draftContent.body}`.length,
               complexity: draftComplexity,
+            })
+            await safeRecordAiCostUsage({
+              userId: row.user_id,
+              customerId: row.user_id,
+              stripeCustomerId: subscriptionAccess.subscription?.stripe_customer_id || null,
+              plan: subscriptionPlan,
+              source: 'gmail_worker',
+              actionType: 'draft_generation',
+              provider: draftContent.provider,
+              model: draftContent.model,
+              promptTokens: draftCost.promptTokens,
+              completionTokens: draftCost.completionTokens,
+              inputCostEur: draftCost.inputCostEur,
+              outputCostEur: draftCost.outputCostEur,
+              totalCostEur: draftCost.totalCostEur,
+              runId,
+              gmailMessageCount: 1,
+              success: true,
+              relatedGmailMessageId: messageId,
+              relatedThreadId: message.threadId || null,
+              metadata: {
+                cost_estimate_source: draftCost.costAvailable ? 'worker_env_estimate' : 'missing_worker_price_env',
+                complexity: draftComplexity,
+              },
             })
 
             draftId = await createReplyDraft({
@@ -1569,6 +1651,32 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
             reason = 'Erreur lors de la création du brouillon.'
             draftDecisionReason = error instanceof Error ? error.message : reason
             debug.failedDraftCreation += 1
+            if (!draftModel) {
+              const configuredDraft = getConfiguredDraftModelForComplexity(draftComplexity)
+              await safeRecordAiCostUsage({
+                userId: row.user_id,
+                customerId: row.user_id,
+                stripeCustomerId: subscriptionAccess.subscription?.stripe_customer_id || null,
+                plan: subscriptionPlan,
+                source: 'gmail_worker',
+                actionType: 'draft_generation',
+                provider: configuredDraft.provider,
+                model: configuredDraft.model,
+                promptTokens: 0,
+                completionTokens: 0,
+                totalCostEur: 0,
+                runId,
+                gmailMessageCount: 1,
+                success: false,
+                errorCode: 'draft_generation_failed',
+                relatedGmailMessageId: messageId,
+                relatedThreadId: message.threadId || null,
+                metadata: {
+                  cost_estimate_source: 'call_failed_no_provider_usage',
+                  complexity: draftComplexity,
+                },
+              })
+            }
           }
         }
         }
@@ -1877,7 +1985,7 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
         emails: batchInput,
       })
       addUnique(debug.classificationModels, batchClassification.model)
-      addCostEstimate({
+      const classificationCost = addCostEstimate({
         debug,
         kind: 'classification',
         model: batchClassification.model,
@@ -1886,6 +1994,28 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
           emails: batchInput,
         }).length,
         outputChars: JSON.stringify(batchClassification.results).length,
+      })
+      await safeRecordAiCostUsage({
+        userId: row.user_id,
+        customerId: row.user_id,
+        stripeCustomerId: subscriptionAccess.subscription?.stripe_customer_id || null,
+        plan: subscriptionPlan,
+        source: 'gmail_worker',
+        actionType: 'email_classification',
+        provider: batchClassification.provider,
+        model: batchClassification.model,
+        promptTokens: classificationCost.promptTokens,
+        completionTokens: classificationCost.completionTokens,
+        inputCostEur: classificationCost.inputCostEur,
+        outputCostEur: classificationCost.outputCostEur,
+        totalCostEur: classificationCost.totalCostEur,
+        runId,
+        gmailMessageCount: allowedBatch.length,
+        success: true,
+        metadata: {
+          cost_estimate_source: classificationCost.costAvailable ? 'worker_env_estimate' : 'missing_worker_price_env',
+          batch_size: allowedBatch.length,
+        },
       })
 
       for (const item of allowedBatch) {
@@ -2055,13 +2185,37 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
               })
               draftModel = draftContent.model
               addUnique(debug.draftModels, draftContent.model)
-              addCostEstimate({
+              const draftCost = addCostEstimate({
                 debug,
                 kind: 'draft',
                 model: draftContent.model,
                 inputChars: incomingEmailForDraft.length + 1800,
                 outputChars: `${draftContent.subject}\n${draftContent.body}`.length,
                 complexity: draftComplexity,
+              })
+              await safeRecordAiCostUsage({
+                userId: row.user_id,
+                customerId: row.user_id,
+                stripeCustomerId: subscriptionAccess.subscription?.stripe_customer_id || null,
+                plan: subscriptionPlan,
+                source: 'gmail_worker',
+                actionType: 'draft_generation',
+                provider: draftContent.provider,
+                model: draftContent.model,
+                promptTokens: draftCost.promptTokens,
+                completionTokens: draftCost.completionTokens,
+                inputCostEur: draftCost.inputCostEur,
+                outputCostEur: draftCost.outputCostEur,
+                totalCostEur: draftCost.totalCostEur,
+                runId,
+                gmailMessageCount: 1,
+                success: true,
+                relatedGmailMessageId: messageId,
+                relatedThreadId: message.threadId || null,
+                metadata: {
+                  cost_estimate_source: draftCost.costAvailable ? 'worker_env_estimate' : 'missing_worker_price_env',
+                  complexity: draftComplexity,
+                },
               })
 
               draftId = await createReplyDraft({
@@ -2087,6 +2241,32 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
               reason = 'Erreur lors de la création du brouillon.'
               draftDecisionReason = reason
               debug.failedDraftCreation += 1
+              if (!draftModel) {
+                const configuredDraft = getConfiguredDraftModelForComplexity(draftComplexity)
+                await safeRecordAiCostUsage({
+                  userId: row.user_id,
+                  customerId: row.user_id,
+                  stripeCustomerId: subscriptionAccess.subscription?.stripe_customer_id || null,
+                  plan: subscriptionPlan,
+                  source: 'gmail_worker',
+                  actionType: 'draft_generation',
+                  provider: configuredDraft.provider,
+                  model: configuredDraft.model,
+                  promptTokens: 0,
+                  completionTokens: 0,
+                  totalCostEur: 0,
+                  runId,
+                  gmailMessageCount: 1,
+                  success: false,
+                  errorCode: 'draft_generation_failed',
+                  relatedGmailMessageId: messageId,
+                  relatedThreadId: message.threadId || null,
+                  metadata: {
+                    cost_estimate_source: 'call_failed_no_provider_usage',
+                    complexity: draftComplexity,
+                  },
+                })
+              }
             }
           }
         }
@@ -2227,6 +2407,28 @@ async function processUserProfile(row: AutomationProfileRow, options: Pick<Worke
       }
     } catch (error) {
       const safeErrorMessage = error instanceof Error ? error.message : 'Erreur IA ou Gmail.'
+      const aiStatus = getAiProviderStatus()
+      await safeRecordAiCostUsage({
+        userId: row.user_id,
+        customerId: row.user_id,
+        stripeCustomerId: subscriptionAccess.subscription?.stripe_customer_id || null,
+        plan: subscriptionPlan,
+        source: 'gmail_worker',
+        actionType: 'email_classification',
+        provider: aiStatus.provider,
+        model: aiStatus.classificationModel,
+        promptTokens: estimateTokensFromChars(JSON.stringify(allowedBatch.map((item) => item.messageId)).length),
+        completionTokens: 0,
+        totalCostEur: 0,
+        runId,
+        gmailMessageCount: allowedBatch.length,
+        success: false,
+        errorCode: 'classification_failed',
+        metadata: {
+          cost_estimate_source: 'call_failed_no_provider_usage',
+          batch_size: allowedBatch.length,
+        },
+      })
       for (const item of allowedBatch) {
         skippedOther += 1
         pushEmailDebug(debug, {
