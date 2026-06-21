@@ -211,21 +211,6 @@ export async function recordUsage(
   const monthKey = getCurrentMonthKey()
   const creditsUsed = amount * CREDIT_COST_BY_EVENT[eventType]
 
-  const { error: eventError } = await supabase.from('ai_usage_events').insert({
-    user_id: userId,
-    event_type: eventType,
-    amount,
-    credits_used: creditsUsed,
-    source: metadata.source || 'manual',
-    related_gmail_message_id: metadata.relatedGmailMessageId || null,
-    related_thread_id: metadata.relatedThreadId || null,
-  })
-
-  if (eventError) {
-    if (eventError.code === '42P01' || eventError.message?.toLowerCase().includes('does not exist')) return null
-    throw eventError
-  }
-
   const current = await getMonthlyUsage(userId, monthKey)
   const updates = getColumnUpdates(eventType, amount, creditsUsed, current)
 

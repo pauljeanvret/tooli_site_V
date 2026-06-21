@@ -1,0 +1,368 @@
+import Stripe from 'stripe'
+
+import { normalizePlanId, type TooliaPlanId } from '@/lib/saas/plan-config'
+import {
+  findSubscriptionByStripeCustomerId,
+  findSubscriptionByStripeSubscriptionId,
+} from '@/lib/saas/subscription-store'
+import { getPlanFromStripePriceId } from '@/lib/saas/stripe-plans'
+import { getSupabaseAdminClient } from '@/lib/supabase/admin'
+
+type RevenueEventInput = {
+  stripeEventId?: string | null
+  stripeCustomerId?: string | null
+  stripeSubscriptionId?: string | null
+  stripeInvoiceId?: string | null
+  stripeCheckoutSessionId?: string | null
+  userId?: string | null
+  customerEmail?: string | null
+  plan?: string | null
+  currency?: string | null
+  amountPaidCents?: number | null
+  amountDueCents?: number | null
+  amountDiscountCents?: number | null
+  amountRefundedCents?: number | null
+  periodStart?: string | null
+  periodEnd?: string | null
+  stripeCreatedAt?: string | null
+  source: string
+  rawType?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+}
+
+function stringFrom(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function integerFrom(value: unknown) {
+  const parsed = Number(value || 0)
+  return Number.isFinite(parsed) ? Math.round(parsed) : 0
+}
+
+function getStripeId(value: unknown) {
+  if (typeof value === 'string') return value
+  return stringFrom(asRecord(value).id)
+}
+
+function stripeDate(timestamp: unknown) {
+  const seconds = Number(timestamp || 0)
+  if (!Number.isFinite(seconds) || seconds <= 0) return null
+  return new Date(seconds * 1000).toISOString()
+}
+
+function cents(value: unknown) {
+  return Math.max(0, integerFrom(value))
+}
+
+function isMissingRelationError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  if (!error) return false
+  const message = error.message?.toLowerCase() || ''
+  return (
+    error.code === '42P01' ||
+    error.code === '42703' ||
+    error.code === 'PGRST205' ||
+    message.includes('does not exist') ||
+    message.includes('schema cache') ||
+    message.includes('could not find the table') ||
+    message.includes('could not find table') ||
+    message.includes('relation')
+  )
+}
+
+function totalDiscountCents(value: unknown) {
+  const discounts = Array.isArray(value) ? value : []
+  return discounts.reduce((sum, item) => sum + cents(asRecord(item).amount), 0)
+}
+
+function firstMatchingPlanFromLines(lines: unknown) {
+  const data = Array.isArray(asRecord(lines).data) ? (asRecord(lines).data as unknown[]) : []
+  for (const item of data) {
+    const priceId = getStripeId(asRecord(item).price)
+    const plan = getPlanFromStripePriceId(priceId)
+    if (plan) return plan
+  }
+  return null
+}
+
+function firstLinePeriod(lines: unknown) {
+  const data = Array.isArray(asRecord(lines).data) ? (asRecord(lines).data as unknown[]) : []
+  for (const item of data) {
+    const period = asRecord(asRecord(item).period)
+    const start = stripeDate(period.start)
+    const end = stripeDate(period.end)
+    if (start || end) return { start, end }
+  }
+  return { start: null, end: null }
+}
+
+function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined) {
+  if (!metadata) return null
+  const allowed = new Set([
+    'type',
+    'plan',
+    'from_plan',
+    'to_plan',
+    'payment_status',
+    'billing_reason',
+    'collection_method',
+    'invoice_status',
+    'discount_applied',
+  ])
+
+  return Object.fromEntries(Object.entries(metadata).filter(([key]) => allowed.has(key)))
+}
+
+async function resolveOwner(input: {
+  stripeSubscriptionId?: string | null
+  stripeCustomerId?: string | null
+  userId?: string | null
+  plan?: string | null
+}) {
+  let userId = input.userId || null
+  let plan = input.plan && input.plan !== 'unknown' ? normalizePlanId(input.plan) : null
+  let stripeCustomerId = input.stripeCustomerId || null
+
+  if ((!userId || !plan || !stripeCustomerId) && input.stripeSubscriptionId) {
+    const subscription = await findSubscriptionByStripeSubscriptionId(input.stripeSubscriptionId)
+    userId = userId || subscription?.user_id || null
+    plan = plan || (subscription?.plan_id ? normalizePlanId(subscription.plan_id) : null)
+    stripeCustomerId = stripeCustomerId || subscription?.stripe_customer_id || null
+  }
+
+  if ((!userId || !plan) && stripeCustomerId) {
+    const subscription = await findSubscriptionByStripeCustomerId(stripeCustomerId)
+    userId = userId || subscription?.user_id || null
+    plan = plan || (subscription?.plan_id ? normalizePlanId(subscription.plan_id) : null)
+  }
+
+  return {
+    userId,
+    plan: plan || null,
+    stripeCustomerId,
+  }
+}
+
+async function findExistingRevenueEvent(input: {
+  stripeInvoiceId?: string | null
+  stripeCheckoutSessionId?: string | null
+  stripeEventId?: string | null
+}) {
+  const supabase = getSupabaseAdminClient()
+  if (!supabase) return null
+
+  const candidates = [
+    input.stripeInvoiceId ? { column: 'stripe_invoice_id', value: input.stripeInvoiceId } : null,
+    input.stripeCheckoutSessionId ? { column: 'stripe_checkout_session_id', value: input.stripeCheckoutSessionId } : null,
+    input.stripeEventId ? { column: 'stripe_event_id', value: input.stripeEventId } : null,
+  ].filter(Boolean) as Array<{ column: string; value: string }>
+
+  for (const candidate of candidates) {
+    const { data, error } = await supabase
+      .from('stripe_revenue_events')
+      .select('id')
+      .eq(candidate.column, candidate.value)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      if (isMissingRelationError(error)) {
+        return null
+      }
+      throw error
+    }
+
+    if (data?.id) return data.id as string
+  }
+
+  return null
+}
+
+export async function upsertStripeRevenueEvent(input: RevenueEventInput) {
+  const supabase = getSupabaseAdminClient()
+  if (!supabase) return { ok: false, skipped: true, message: 'Supabase admin unavailable' }
+
+  const owner = await resolveOwner({
+    stripeSubscriptionId: input.stripeSubscriptionId,
+    stripeCustomerId: input.stripeCustomerId,
+    userId: input.userId,
+    plan: input.plan,
+  })
+  const amountPaidCents = cents(input.amountPaidCents)
+  const amountRefundedCents = cents(input.amountRefundedCents)
+  const netRevenueCents = Math.max(0, amountPaidCents - amountRefundedCents)
+
+  const payload = {
+    stripe_created_at: input.stripeCreatedAt || null,
+    stripe_event_id: input.stripeEventId || null,
+    stripe_customer_id: owner.stripeCustomerId || input.stripeCustomerId || null,
+    stripe_subscription_id: input.stripeSubscriptionId || null,
+    stripe_invoice_id: input.stripeInvoiceId || null,
+    stripe_checkout_session_id: input.stripeCheckoutSessionId || null,
+    user_id: owner.userId || null,
+    customer_email: input.customerEmail || null,
+    plan: owner.plan || (input.plan ? normalizePlanId(input.plan) : null),
+    currency: (input.currency || 'eur').toLowerCase(),
+    amount_paid_cents: amountPaidCents,
+    amount_due_cents: input.amountDueCents === null || input.amountDueCents === undefined ? null : cents(input.amountDueCents),
+    amount_discount_cents:
+      input.amountDiscountCents === null || input.amountDiscountCents === undefined ? null : cents(input.amountDiscountCents),
+    amount_refunded_cents: amountRefundedCents,
+    net_revenue_cents: netRevenueCents,
+    period_start: input.periodStart || null,
+    period_end: input.periodEnd || null,
+    source: input.source,
+    raw_type: input.rawType || null,
+    metadata: sanitizeMetadata(input.metadata),
+  }
+
+  const existingId = await findExistingRevenueEvent({
+    stripeInvoiceId: payload.stripe_invoice_id,
+    stripeCheckoutSessionId: payload.stripe_checkout_session_id,
+    stripeEventId: payload.stripe_event_id,
+  })
+
+  const request = existingId
+    ? supabase.from('stripe_revenue_events').update(payload).eq('id', existingId).select('id').single()
+    : supabase.from('stripe_revenue_events').insert(payload).select('id').single()
+
+  const { data, error } = await request
+  if (error) {
+    if (isMissingRelationError(error)) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[stripe-revenue] revenue ledger unavailable', {
+          rawType: input.rawType,
+          source: input.source,
+          code: error.code,
+        })
+      }
+      return { ok: false, skipped: true, message: 'Revenue ledger unavailable' }
+    }
+    throw error
+  }
+
+  return { ok: true, id: data?.id as string | undefined, netRevenueCents }
+}
+
+export async function upsertStripeRevenueFromInvoice(input: {
+  invoice: Stripe.Invoice
+  stripeEventId?: string | null
+  source: string
+  rawType: string
+  refundedCents?: number | null
+}) {
+  const invoice = asRecord(input.invoice)
+  const lines = asRecord(invoice.lines)
+  const period = firstLinePeriod(lines)
+  const subscriptionId = getStripeId(invoice.subscription)
+  const customerId = getStripeId(invoice.customer)
+  const metadataPlan = stringFrom(asRecord(invoice.metadata).plan)
+  const plan = firstMatchingPlanFromLines(lines) || (metadataPlan ? normalizePlanId(metadataPlan) : null)
+  const amountDiscountCents = totalDiscountCents(invoice.total_discount_amounts)
+
+  return upsertStripeRevenueEvent({
+    stripeEventId: input.stripeEventId || null,
+    stripeCreatedAt: stripeDate(invoice.created),
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    stripeInvoiceId: stringFrom(invoice.id),
+    customerEmail: stringFrom(invoice.customer_email),
+    plan,
+    currency: stringFrom(invoice.currency) || 'eur',
+    amountPaidCents: cents(invoice.amount_paid),
+    amountDueCents: cents(invoice.amount_due),
+    amountDiscountCents,
+    amountRefundedCents: input.refundedCents ?? cents(invoice.amount_refunded),
+    periodStart: period.start || stripeDate(invoice.period_start),
+    periodEnd: period.end || stripeDate(invoice.period_end),
+    source: input.source,
+    rawType: input.rawType,
+    metadata: {
+      billing_reason: stringFrom(invoice.billing_reason),
+      collection_method: stringFrom(invoice.collection_method),
+      invoice_status: stringFrom(invoice.status),
+      discount_applied: amountDiscountCents > 0,
+    },
+  })
+}
+
+export async function upsertStripeRevenueFromCheckoutSession(input: {
+  session: Stripe.Checkout.Session
+  stripeEventId?: string | null
+  source: string
+  rawType: string
+}) {
+  const session = asRecord(input.session)
+  const metadata = asRecord(session.metadata)
+  const subscriptionId = getStripeId(session.subscription) || stringFrom(metadata.stripe_subscription_id)
+  const customerId = getStripeId(session.customer)
+  const plan =
+    stringFrom(metadata.to_plan) ||
+    stringFrom(metadata.plan) ||
+    stringFrom(metadata.from_plan)
+
+  return upsertStripeRevenueEvent({
+    stripeEventId: input.stripeEventId || null,
+    stripeCreatedAt: stripeDate(session.created),
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    stripeInvoiceId: getStripeId(session.invoice),
+    stripeCheckoutSessionId: stringFrom(session.id),
+    userId: stringFrom(metadata.user_id) || stringFrom(session.client_reference_id),
+    customerEmail: stringFrom(asRecord(session.customer_details).email) || stringFrom(session.customer_email),
+    plan,
+    currency: stringFrom(session.currency) || 'eur',
+    amountPaidCents: cents(session.amount_total),
+    amountDueCents: cents(session.amount_subtotal),
+    amountDiscountCents: cents(session.total_details && asRecord(session.total_details).amount_discount),
+    amountRefundedCents: 0,
+    periodStart: null,
+    periodEnd: null,
+    source: input.source,
+    rawType: input.rawType,
+    metadata: {
+      type: stringFrom(metadata.type),
+      plan: stringFrom(metadata.plan),
+      from_plan: stringFrom(metadata.from_plan),
+      to_plan: stringFrom(metadata.to_plan),
+      payment_status: stringFrom(session.payment_status),
+    },
+  })
+}
+
+export async function upsertStripeRevenueFromChargeRefund(input: {
+  stripe: Stripe
+  charge: Stripe.Charge
+  stripeEventId?: string | null
+  source: string
+  rawType: string
+}) {
+  const charge = asRecord(input.charge)
+  const invoiceId = getStripeId(charge.invoice)
+  if (!invoiceId) {
+    return upsertStripeRevenueEvent({
+      stripeEventId: input.stripeEventId || null,
+      stripeCreatedAt: stripeDate(charge.created),
+      stripeCustomerId: getStripeId(charge.customer),
+      amountPaidCents: cents(charge.amount),
+      amountRefundedCents: cents(charge.amount_refunded),
+      currency: stringFrom(charge.currency) || 'eur',
+      source: input.source,
+      rawType: input.rawType,
+    })
+  }
+
+  const invoice = await input.stripe.invoices.retrieve(invoiceId, {
+    expand: ['lines.data.price'],
+  })
+  return upsertStripeRevenueFromInvoice({
+    invoice,
+    stripeEventId: input.stripeEventId || null,
+    source: input.source,
+    rawType: input.rawType,
+    refundedCents: cents(charge.amount_refunded),
+  })
+}

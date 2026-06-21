@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { BarChart3, RefreshCw, ShieldAlert, TrendingUp, Users } from 'lucide-react'
 
+import { AdminNav } from '@/components/AdminNav'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 type FinanceCustomer = {
@@ -19,6 +20,13 @@ type FinanceCustomer = {
   monthlyPriceEur: number
   setupPriceEur: number
   estimatedRevenueEur: number
+  estimatedPlanRevenueEur: number
+  exactStripeRevenueEur: number
+  revenueSource: 'exact_stripe' | 'estimated_plan'
+  revenueEventsCount: number
+  stripeAmountPaidEur: number
+  stripeDiscountEur: number
+  stripeRefundedEur: number
   aiCostEur: number
   profitEur: number
   marginPercent: number | null
@@ -56,15 +64,50 @@ type FinancePayload = {
     activeCustomers: number
     totalCustomers: number
     estimatedRevenueEur: number
+    exactStripeRevenueEur: number
+    estimatedPlanRevenueEur: number
+    customersWithExactStripeRevenue: number
     aiCostEur: number
     estimatedProfitEur: number
     averageAiCostPerActiveCustomerEur: number
     aiCalls: number
+    latestAiUsageAt: string | null
     totalTokens: number
     gmailMessageCount: number
     mostExpensiveCustomer: { email: string | null; plan: string; aiCostEur: number } | null
   }
+  warnings?: {
+    stripeRevenueAvailable: boolean
+    stripeRevenueTableMissing: boolean
+    stripeRevenueLoadMessage: string | null
+    stripeRevenueDebugMessage: string | null
+    stripeRevenueEventsLoaded: number
+    stripeRevenueEventsInMonth: number
+    knownStripeCustomers: number
+    subscriptionsMissingStripeCustomerId: number
+    stripeSecretConfigured: boolean
+    aiCostPricingMissing: boolean
+    aiCostPricingMessage: string | null
+    aiCostPricingEnvVars: string[]
+    zeroCostEventsWithTokens: number
+    ignoredOtherEvents: number
+    ignoredZeroPlaceholderEvents: number
+  }
   customers?: FinanceCustomer[]
+}
+
+type StripeSyncPayload = {
+  ok?: boolean
+  message?: string
+  monthKey?: string
+  subscriptionsScanned?: number
+  subscriptionsMissingStripeCustomerId?: number
+  customersChecked?: number
+  invoicesFetched?: number
+  checkoutSessionsFetched?: number
+  revenueEventsSaved?: number
+  tableMissing?: boolean
+  code?: string
 }
 
 const planOptions = [
@@ -103,6 +146,22 @@ function formatEuro(value: number) {
   }).format(value)
 }
 
+function formatEuroSmart(value: number) {
+  const amount = Number(value || 0)
+  if (!Number.isFinite(amount) || amount === 0) return formatEuro(0)
+  if (Math.abs(amount) < 0.01) return '< 0,01 €'
+  return formatEuro(amount)
+}
+
+function formatEuroExact(value: number) {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 6,
+    maximumFractionDigits: 6,
+  }).format(Number(value || 0))
+}
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat('fr-FR').format(value)
 }
@@ -120,6 +179,7 @@ function actionLabel(action: string | null) {
   if (action === 'draft_generation') return 'Brouillon IA'
   if (action === 'style_analysis') return 'Analyse de style'
   if (action === 'telegram_summary') return 'Résumé Telegram'
+  if (action === 'profile_generation') return 'Profil onboarding'
   return action || 'Autre'
 }
 
@@ -131,7 +191,9 @@ export function AdminFinanceClient() {
   const [payload, setPayload] = React.useState<FinancePayload | null>(null)
   const [expandedUserId, setExpandedUserId] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [isSyncingStripe, setIsSyncingStripe] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [syncMessage, setSyncMessage] = React.useState('')
 
   const loadFinance = React.useCallback(async () => {
     setIsLoading(true)
@@ -169,7 +231,50 @@ export function AdminFinanceClient() {
     void loadFinance()
   }, [loadFinance])
 
+  async function syncStripeRevenue() {
+    setIsSyncingStripe(true)
+    setError('')
+    setSyncMessage('')
+
+    const supabase = getSupabaseBrowserClient()
+    const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+    const token = data.session?.access_token
+
+    if (!token) {
+      setError('Connectez-vous avec un compte admin pour synchroniser Stripe.')
+      setIsSyncingStripe(false)
+      return
+    }
+
+    const response = await fetch('/api/admin/finance/sync-stripe', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ month }),
+    }).catch(() => null)
+    const syncPayload = (await response?.json().catch(() => null)) as StripeSyncPayload | null
+
+    if (!response?.ok || !syncPayload?.ok) {
+      setError(syncPayload?.message || 'Synchronisation Stripe impossible.')
+      setIsSyncingStripe(false)
+      return
+    }
+
+    await loadFinance()
+    setSyncMessage(
+      `${syncPayload.message || 'Synchronisation Stripe terminée.'} Clients scannés : ${
+        syncPayload.customersChecked ?? 0
+      }. Factures importées : ${syncPayload.invoicesFetched ?? 0}. Sessions importées : ${
+        syncPayload.checkoutSessionsFetched ?? 0
+      }. Lignes exactes enregistrées : ${syncPayload.revenueEventsSaved ?? 0}.`,
+    )
+    setIsSyncingStripe(false)
+  }
+
   const summary = payload?.summary
+  const warnings = payload?.warnings
   const customers = payload?.customers || []
 
   return (
@@ -184,23 +289,29 @@ export function AdminFinanceClient() {
               Finance & coûts IA
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 dark:text-white/60">
-              Suivi interne par client : revenus estimés, coûts IA, marge et activité Gmail. Les revenus sont estimés depuis le plan actif tant que les factures Stripe exactes ne sont pas historisées.
+              Suivi interne par client : revenus Stripe exacts quand disponibles, fallback estimé par plan, coûts IA, marge et activité Gmail.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold">
-              <Link href="/admin/diagnostics" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
-                Diagnostics
-              </Link>
-              <span className="rounded-full bg-toolia-primary px-4 py-2 text-white">Finance</span>
-            </div>
+            <AdminNav active="finance" />
           </div>
-          <button
-            type="button"
-            onClick={() => void loadFinance()}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Actualiser
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void syncStripeRevenue()}
+              disabled={isSyncingStripe}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900 shadow-sm transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-300/20 dark:bg-blue-300/10 dark:text-blue-100 dark:hover:bg-blue-300/15"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncingStripe ? 'animate-spin' : ''}`} />
+              {isSyncingStripe ? 'Sync Stripe...' : 'Synchroniser Stripe'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadFinance()}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Actualiser
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-3 rounded-[28px] border border-slate-200/90 bg-white/90 p-4 shadow-[0_20px_70px_rgba(22,34,74,0.08)] dark:border-white/10 dark:bg-slate-950/60 md:grid-cols-4">
@@ -251,10 +362,43 @@ export function AdminFinanceClient() {
           </div>
         ) : null}
 
+        {syncMessage ? (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-100">
+            {syncMessage}
+          </div>
+        ) : null}
+
+        {warnings?.stripeRevenueDebugMessage ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100">
+            <p>{warnings.stripeRevenueDebugMessage}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] opacity-75">
+              Table manquante : {warnings.stripeRevenueTableMissing ? 'oui' : 'non'} · STRIPE_SECRET_KEY :{' '}
+              {warnings.stripeSecretConfigured ? 'présent' : 'absent'} · Clients Stripe connus :{' '}
+              {warnings.knownStripeCustomers} · Lignes Stripe ce mois : {warnings.stripeRevenueEventsInMonth}
+            </p>
+          </div>
+        ) : null}
+
+        {warnings?.aiCostPricingMissing ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100">
+            <p className="font-extrabold">{warnings.aiCostPricingMessage}</p>
+            <p className="mt-1 font-semibold">
+              Événements concernés : {warnings.zeroCostEventsWithTokens}. Variables utiles :{' '}
+              {warnings.aiCostPricingEnvVars.join(', ')}.
+            </p>
+          </div>
+        ) : null}
+
+        {warnings?.ignoredZeroPlaceholderEvents ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/55">
+            {warnings.ignoredZeroPlaceholderEvents} événement(s) quota sans modèle, sans tokens et sans coût ont été ignorés dans les totaux finance.
+          </div>
+        ) : null}
+
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: 'Revenu estimé', value: summary ? formatEuro(summary.estimatedRevenueEur) : '...', icon: EuroIcon },
-            { label: 'Coût IA', value: summary ? formatEuro(summary.aiCostEur) : '...', icon: BarChart3 },
+            { label: 'Revenu', value: summary ? formatEuro(summary.estimatedRevenueEur) : '...', icon: EuroIcon },
+            { label: 'Coût IA', value: summary ? formatEuroSmart(summary.aiCostEur) : '...', icon: BarChart3 },
             { label: 'Profit estimé', value: summary ? formatEuro(summary.estimatedProfitEur) : '...', icon: TrendingUp },
             { label: 'Clients actifs', value: summary ? `${summary.activeCustomers}/${summary.totalCustomers}` : '...', icon: Users },
           ].map((card) => {
@@ -271,8 +415,11 @@ export function AdminFinanceClient() {
           })}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100">
-          Revenus marqués comme estimés : les factures Stripe exactes ne sont pas encore historisées dans ce tableau.
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
+          Revenus exacts Stripe pour {summary?.customersWithExactStripeRevenue || 0} client(s). Les autres lignes restent en estimation plan jusqu’à synchronisation ou réception webhook Stripe.
+          <span className="mt-1 block text-xs text-slate-500 dark:text-white/45">
+            Appels IA ce mois : {formatNumber(summary?.aiCalls || 0)} · Dernier usage IA : {formatDate(summary?.latestAiUsageAt || null)}
+          </span>
         </div>
 
         <div className="mt-6 space-y-4">
@@ -302,8 +449,22 @@ export function AdminFinanceClient() {
                       <p className="text-sm text-slate-600 dark:text-white/58">{customer.customerEmail || 'Email non renseigné'}</p>
                     </div>
                     <Metric label="Plan" value={`${customer.planName} · ${customer.subscriptionStatus}`} />
-                    <Metric label="Revenu" value={formatEuro(customer.estimatedRevenueEur)} />
-                    <Metric label="Coût IA" value={formatEuro(customer.aiCostEur)} />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Revenu</p>
+                      <p className="mt-1 text-sm font-extrabold text-slate-800 dark:text-white/75">
+                        {formatEuro(customer.estimatedRevenueEur)}
+                      </p>
+                      <span
+                        className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-extrabold ${
+                          customer.revenueSource === 'exact_stripe'
+                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-100'
+                            : 'bg-amber-50 text-amber-800 dark:bg-amber-300/10 dark:text-amber-100'
+                        }`}
+                      >
+                        {customer.revenueSource === 'exact_stripe' ? 'Exact Stripe' : 'Estimé plan'}
+                      </span>
+                    </div>
+                    <Metric label="Coût IA" value={formatEuroSmart(customer.aiCostEur)} />
                     <Metric label="Profit" value={formatEuro(customer.profitEur)} tone={customer.profitEur < 0 ? 'danger' : 'default'} />
                     <Metric label="Marge" value={customer.marginPercent === null ? 'N/A' : `${customer.marginPercent}%`} tone={customer.marginPercent !== null && customer.marginPercent < 50 ? 'warning' : 'default'} />
                   </button>
@@ -318,6 +479,10 @@ export function AdminFinanceClient() {
                             <Detail label="Telegram" value={customer.telegramConnected ? 'Connecté' : 'Non connecté'} />
                             <Detail label="Période" value={formatDate(customer.currentPeriodEnd)} />
                             <Detail label="Stripe customer" value={customer.stripeCustomerId || 'Non trouvé'} />
+                            <Detail label="Source revenu" value={customer.revenueSource === 'exact_stripe' ? 'Exact Stripe' : 'Estimation plan'} />
+                            <Detail label="Payé Stripe" value={formatEuro(customer.stripeAmountPaidEur)} />
+                            <Detail label="Remise Stripe" value={formatEuro(customer.stripeDiscountEur)} />
+                            <Detail label="Remboursé Stripe" value={formatEuro(customer.stripeRefundedEur)} />
                           </dl>
                         </div>
                         <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
@@ -326,6 +491,8 @@ export function AdminFinanceClient() {
                             <Detail label="Appels IA" value={formatNumber(customer.aiCalls)} />
                             <Detail label="Emails concernés" value={formatNumber(customer.gmailMessageCount)} />
                             <Detail label="Tokens estimés" value={formatNumber(customer.totalTokens)} />
+                            <Detail label="Coût affiché" value={formatEuroSmart(customer.aiCostEur)} />
+                            <Detail label="Coût exact" value={formatEuroExact(customer.aiCostEur)} />
                             <Detail label="Dernier usage" value={formatDate(customer.lastAiUsageAt)} />
                           </dl>
                         </div>
@@ -337,7 +504,7 @@ export function AdminFinanceClient() {
                                 <div key={action} className="flex items-center justify-between gap-3">
                                   <span className="font-semibold text-slate-600 dark:text-white/60">{actionLabel(action)}</span>
                                   <span className="font-extrabold text-slate-950 dark:text-white">
-                                    {item.count} · {formatEuro(item.cost)}
+                                    {item.count} · {formatEuroSmart(item.cost)}
                                   </span>
                                 </div>
                               ))
@@ -369,7 +536,14 @@ export function AdminFinanceClient() {
                                   <td className="py-3 pr-4 font-semibold text-slate-800 dark:text-white/75">{actionLabel(event.actionType)}</td>
                                   <td className="py-3 pr-4 text-slate-600 dark:text-white/60">{event.provider}/{event.model}</td>
                                   <td className="py-3 pr-4 text-slate-600 dark:text-white/60">{formatNumber(event.promptTokens + event.completionTokens)}</td>
-                                  <td className="py-3 pr-4 font-extrabold text-slate-950 dark:text-white">{formatEuro(event.totalCostEur)}</td>
+                                  <td className="py-3 pr-4 font-extrabold text-slate-950 dark:text-white">
+                                    <span>{formatEuroSmart(event.totalCostEur)}</span>
+                                    {event.totalCostEur > 0 && event.totalCostEur < 0.01 ? (
+                                      <span className="mt-1 block text-xs font-semibold text-slate-500 dark:text-white/45">
+                                        Coût exact : {formatEuroExact(event.totalCostEur)}
+                                      </span>
+                                    ) : null}
+                                  </td>
                                   <td className="py-3 pr-4 text-slate-600 dark:text-white/60">{event.success ? 'OK' : event.errorCode || 'Erreur'}</td>
                                 </tr>
                               ))}
