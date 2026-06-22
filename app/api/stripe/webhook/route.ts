@@ -15,6 +15,12 @@ import {
   getStripeSecretKey,
   getStripeWebhookSecret,
 } from "@/lib/saas/stripe-plans";
+import {
+  getInvoicePaymentRefs,
+  upsertStripeRevenueFromChargeRefund,
+  upsertStripeRevenueFromCheckoutSession,
+  upsertStripeRevenueFromInvoice,
+} from "@/lib/saas/stripe-revenue-store";
 
 export const runtime = "nodejs";
 
@@ -132,7 +138,21 @@ async function clearPendingTooliaUpgrade(stripe: Stripe, subscription: Stripe.Su
   });
 }
 
-async function handleCheckoutCompleted(stripe: Stripe, session: Stripe.Checkout.Session) {
+async function handleCheckoutCompleted(stripe: Stripe, session: Stripe.Checkout.Session, stripeEventId?: string | null) {
+  const sessionMode = stringFrom(asRecord(session).mode);
+  const shouldStoreCheckoutRevenue =
+    session.payment_status === "paid" &&
+    (session.metadata?.type === "toolia_plan_upgrade" || sessionMode === "payment" || !getSubscriptionId(session.subscription));
+
+  if (shouldStoreCheckoutRevenue) {
+    await upsertStripeRevenueFromCheckoutSession({
+      session,
+      stripeEventId,
+      source: "stripe_webhook",
+      rawType: "checkout.session.completed",
+    });
+  }
+
   if (session.metadata?.type === "toolia_plan_upgrade") {
     await handleUpgradeCheckoutCompleted(stripe, session);
     return;
@@ -265,10 +285,33 @@ async function handleUpgradeCheckoutCompleted(stripe: Stripe, session: Stripe.Ch
   }
 }
 
-async function handleInvoiceEvent(stripe: Stripe, invoice: Stripe.Invoice, status: "active" | "past_due") {
+async function handleInvoiceEvent(
+  stripe: Stripe,
+  invoice: Stripe.Invoice,
+  status: "active" | "past_due",
+  stripeEventId?: string | null,
+  rawType = "invoice.payment_succeeded",
+) {
   const invoiceRecord = asRecord(invoice);
   const subscriptionId = getSubscriptionId(invoiceRecord.subscription);
   const customerId = getCustomerId(invoiceRecord.customer);
+
+  if (status === "active") {
+    const invoiceForRevenue = invoice.id
+      ? await stripe.invoices.retrieve(invoice.id, {
+          expand: ["lines.data.price"],
+        })
+      : invoice;
+    const paymentRefs = invoiceForRevenue.id ? await getInvoicePaymentRefs(stripe, invoiceForRevenue.id) : null;
+
+    await upsertStripeRevenueFromInvoice({
+      invoice: invoiceForRevenue,
+      stripeEventId,
+      source: "stripe_webhook",
+      rawType,
+      ...(paymentRefs || {}),
+    });
+  }
 
   if (subscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
@@ -343,7 +386,7 @@ export async function POST(request: NextRequest) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      await handleCheckoutCompleted(stripe, event.data.object as Stripe.Checkout.Session);
+      await handleCheckoutCompleted(stripe, event.data.object as Stripe.Checkout.Session, event.id);
     }
 
     if (
@@ -363,11 +406,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (event.type === "invoice.payment_succeeded") {
-      await handleInvoiceEvent(stripe, event.data.object as Stripe.Invoice, "active");
+      await handleInvoiceEvent(stripe, event.data.object as Stripe.Invoice, "active", event.id, event.type);
+    }
+
+    if (event.type === "invoice.paid") {
+      await handleInvoiceEvent(stripe, event.data.object as Stripe.Invoice, "active", event.id, event.type);
     }
 
     if (event.type === "invoice.payment_failed") {
-      await handleInvoiceEvent(stripe, event.data.object as Stripe.Invoice, "past_due");
+      await handleInvoiceEvent(stripe, event.data.object as Stripe.Invoice, "past_due", event.id, event.type);
+    }
+
+    if (event.type === "charge.refunded") {
+      await upsertStripeRevenueFromChargeRefund({
+        stripe,
+        charge: event.data.object as Stripe.Charge,
+        stripeEventId: event.id,
+        source: "stripe_webhook",
+        rawType: "charge.refunded",
+      });
     }
 
     return NextResponse.json({ ok: true });

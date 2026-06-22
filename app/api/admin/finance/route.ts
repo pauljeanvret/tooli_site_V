@@ -307,7 +307,7 @@ export async function GET(request: NextRequest) {
     stripeRevenueTableMissing = isMissingRelationError(revenueError)
     stripeRevenueLoadMessage = isMissingRelationError(revenueError)
       ? 'Table stripe_revenue_events introuvable ou non exposée via Supabase. Appliquez la migration 20260621120000_stripe_revenue_events.sql, puis relancez la synchronisation Stripe.'
-      : `Impossible de charger les revenus Stripe exacts : revenus affichés en estimation plan. Code Supabase : ${revenueError.code || 'inconnu'}.`
+      : `Impossible de charger les revenus Stripe exacts : le revenu réel est affiché à 0 tant que les paiements ne sont pas synchronisés. Code Supabase : ${revenueError.code || 'inconnu'}.`
     console.warn('[admin/finance] stripe revenue unavailable', {
       message: revenueError.message,
       code: revenueError.code,
@@ -410,8 +410,14 @@ export async function GET(request: NextRequest) {
       const gmailMessageCount = events.reduce((sum, event) => sum + numberValue(event.gmail_message_count), 0)
       const estimatedPlanRevenue = subscription && isPaidSubscriptionStatus(subscription.status) ? limits.monthlyPrice : 0
       const exactRevenue = revenueEvents.reduce((sum, event) => sum + centsToEur(event.net_revenue_cents), 0)
+      const stripeAmountPaid = revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_paid_cents), 0)
+      const stripeDiscount = revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_discount_cents), 0)
+      const stripeRefunded = revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_refunded_cents), 0)
       const hasExactStripeRevenue = revenueEvents.length > 0
-      const revenue = hasExactStripeRevenue ? exactRevenue : estimatedPlanRevenue
+      const hasStripeRefund = stripeRefunded > 0
+      const isFullyRefunded = hasExactStripeRevenue && stripeAmountPaid > 0 && exactRevenue <= 0 && stripeRefunded >= stripeAmountPaid
+      const isZeroPaidStripe = hasExactStripeRevenue && stripeAmountPaid === 0
+      const revenue = exactRevenue
       const profit = revenue - totalCost
       const margin = revenue > 0 ? (profit / revenue) * 100 : null
       const actionBreakdown = events.reduce<Record<string, { count: number; cost: number }>>((acc, event) => {
@@ -438,11 +444,15 @@ export async function GET(request: NextRequest) {
         estimatedRevenueEur: roundCurrency(revenue),
         estimatedPlanRevenueEur: roundCurrency(estimatedPlanRevenue),
         exactStripeRevenueEur: roundCurrency(exactRevenue),
-        revenueSource: hasExactStripeRevenue ? 'exact_stripe' : 'estimated_plan',
+        revenueSource: hasExactStripeRevenue ? (isFullyRefunded ? 'exact_stripe_refunded' : 'exact_stripe') : 'none',
+        hasExactStripeRevenue,
+        hasStripeRefund,
+        isFullyRefunded,
+        isZeroPaidStripe,
         revenueEventsCount: revenueEvents.length,
-        stripeAmountPaidEur: roundCurrency(revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_paid_cents), 0)),
-        stripeDiscountEur: roundCurrency(revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_discount_cents), 0)),
-        stripeRefundedEur: roundCurrency(revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_refunded_cents), 0)),
+        stripeAmountPaidEur: roundCurrency(stripeAmountPaid),
+        stripeDiscountEur: roundCurrency(stripeDiscount),
+        stripeRefundedEur: roundCurrency(stripeRefunded),
         aiCostEur: totalCost,
         profitEur: roundCurrency(profit),
         marginPercent: margin === null ? null : Math.round(margin * 10) / 10,
@@ -491,6 +501,12 @@ export async function GET(request: NextRequest) {
   const totalRevenue = rows.reduce((sum, row) => sum + row.estimatedRevenueEur, 0)
   const exactRevenueTotal = rows.reduce((sum, row) => sum + row.exactStripeRevenueEur, 0)
   const estimatedPlanRevenueTotal = rows.reduce((sum, row) => sum + row.estimatedPlanRevenueEur, 0)
+  const refundedRevenueTotal = rows.reduce((sum, row) => sum + row.stripeRefundedEur, 0)
+  const customersWithExactStripeRevenue = rows.filter((row) => row.hasExactStripeRevenue).length
+  const customersMissingExactStripeRevenue = rows.filter((row) => !row.hasExactStripeRevenue).length
+  const customersWithRefundedStripeRevenue = rows.filter((row) => row.hasStripeRefund).length
+  const fullyRefundedPaymentsDetected = rows.filter((row) => row.isFullyRefunded).length
+  const zeroPaidExactInvoices = rows.filter((row) => row.isZeroPaidStripe).length
   const totalCost = rows.reduce((sum, row) => sum + row.aiCostEur, 0)
   const mostExpensiveCustomer = rows.reduce<(typeof rows)[number] | null>(
     (current, row) => (!current || row.aiCostEur > current.aiCostEur ? row : current),
@@ -500,7 +516,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     monthKey,
-    revenueMode: stripeRevenueAvailable ? 'exact_stripe_when_available_with_plan_fallback' : 'estimated_from_active_subscription_plan',
+    revenueMode: stripeRevenueAvailable ? 'exact_stripe_net_only' : 'stripe_revenue_unavailable',
     warnings: {
       stripeRevenueAvailable,
       stripeRevenueTableMissing,
@@ -520,6 +536,11 @@ export async function GET(request: NextRequest) {
       zeroCostEventsWithTokens: zeroCostEventsWithTokens.length,
       ignoredOtherEvents: ignoredOtherEvents.length,
       ignoredZeroPlaceholderEvents: ignoredZeroPlaceholderEvents.length,
+      customersMissingExactStripeRevenue,
+      customersWithRefundedStripeRevenue,
+      fullyRefundedPaymentsDetected,
+      zeroPaidExactInvoices,
+      stripeRefundedRevenueEur: roundCurrency(refundedRevenueTotal),
     },
     summary: {
       activeCustomers: activeCustomerCount,
@@ -527,7 +548,13 @@ export async function GET(request: NextRequest) {
       estimatedRevenueEur: roundCurrency(totalRevenue),
       exactStripeRevenueEur: roundCurrency(exactRevenueTotal),
       estimatedPlanRevenueEur: roundCurrency(estimatedPlanRevenueTotal),
-      customersWithExactStripeRevenue: rows.filter((row) => row.revenueSource === 'exact_stripe').length,
+      theoreticalMrrEur: roundCurrency(estimatedPlanRevenueTotal),
+      stripeRefundedRevenueEur: roundCurrency(refundedRevenueTotal),
+      customersWithExactStripeRevenue,
+      customersMissingExactStripeRevenue,
+      customersWithRefundedStripeRevenue,
+      fullyRefundedPaymentsDetected,
+      zeroPaidExactInvoices,
       aiCostEur: totalCost,
       estimatedProfitEur: roundCurrency(totalRevenue - totalCost),
       averageAiCostPerActiveCustomerEur: activeCustomerCount ? roundCurrency(totalCost / activeCustomerCount) : 0,

@@ -6,6 +6,7 @@ export type AiCostActionType =
   | 'draft_generation'
   | 'style_analysis'
   | 'telegram_summary'
+  | 'profile_generation'
   | 'other'
 
 export type AiCostUsageInput = {
@@ -70,9 +71,18 @@ function eventTypeForAction(actionType: AiCostActionType): AiUsageEventType {
   return 'email_analysis'
 }
 
+function numberEnv(name: string) {
+  const value = Number(process.env[name] || 0)
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
 function getModelCost(model: string | null | undefined) {
-  if (!model) return null
-  return MODEL_COSTS_EUR_PER_1M[model] || MODEL_COSTS_EUR_PER_1M[model.toLowerCase()] || null
+  const defaultInput = numberEnv('LLM_DEFAULT_INPUT_COST_PER_1M')
+  const defaultOutput = numberEnv('LLM_DEFAULT_OUTPUT_COST_PER_1M')
+  const defaultCost = defaultInput && defaultOutput ? { input: defaultInput, output: defaultOutput } : null
+
+  if (!model) return defaultCost
+  return MODEL_COSTS_EUR_PER_1M[model] || MODEL_COSTS_EUR_PER_1M[model.toLowerCase()] || defaultCost
 }
 
 export function estimateTokensFromChars(chars: number) {
@@ -145,6 +155,24 @@ export async function recordAiCostUsage(input: AiCostUsageInput) {
   const eventType = eventTypeForAction(input.actionType)
   const breakdown = calculateAiCost(input)
   const gmailMessageCount = nonNegativeInteger(input.gmailMessageCount)
+  const isEmptyPlaceholder =
+    input.actionType === 'other' &&
+    !input.errorCode &&
+    !input.provider &&
+    !input.model &&
+    breakdown.promptTokens === 0 &&
+    breakdown.completionTokens === 0 &&
+    breakdown.totalCostEur === 0
+
+  if (isEmptyPlaceholder) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[ai-costs] skipped empty placeholder event', {
+        userId: input.userId,
+        source: input.source || 'gmail_worker',
+      })
+    }
+    return null
+  }
 
   const { error } = await supabase.from('ai_usage_events').insert({
     user_id: input.userId,

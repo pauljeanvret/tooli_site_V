@@ -14,6 +14,8 @@ type RevenueEventInput = {
   stripeSubscriptionId?: string | null
   stripeInvoiceId?: string | null
   stripeCheckoutSessionId?: string | null
+  stripePaymentIntentId?: string | null
+  stripeChargeId?: string | null
   userId?: string | null
   customerEmail?: string | null
   plan?: string | null
@@ -99,6 +101,33 @@ function firstLinePeriod(lines: unknown) {
   return { start: null, end: null }
 }
 
+function firstInvoicePaymentIntentId(invoice: Record<string, unknown>) {
+  const payments = asRecord(invoice.payments)
+  const data = Array.isArray(payments.data) ? (payments.data as unknown[]) : []
+  for (const item of data) {
+    const payment = asRecord(asRecord(item).payment)
+    const paymentIntentId = getStripeId(payment.payment_intent)
+    if (paymentIntentId) return paymentIntentId
+  }
+  return null
+}
+
+function firstInvoiceChargeId(invoice: Record<string, unknown>) {
+  const payments = asRecord(invoice.payments)
+  const data = Array.isArray(payments.data) ? (payments.data as unknown[]) : []
+  for (const item of data) {
+    const payment = asRecord(asRecord(item).payment)
+    const chargeId = getStripeId(payment.charge)
+    if (chargeId) return chargeId
+  }
+  return null
+}
+
+function latestChargeIdFromPaymentIntent(value: unknown) {
+  const paymentIntent = asRecord(value)
+  return getStripeId(paymentIntent.latest_charge)
+}
+
 function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined) {
   if (!metadata) return null
   const allowed = new Set([
@@ -114,6 +143,32 @@ function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined) 
   ])
 
   return Object.fromEntries(Object.entries(metadata).filter(([key]) => allowed.has(key)))
+}
+
+function payloadForUpdate<T extends Record<string, unknown>>(payload: T) {
+  const next = { ...payload }
+  const preserveIfNull = [
+    'stripe_event_id',
+    'stripe_customer_id',
+    'stripe_subscription_id',
+    'stripe_invoice_id',
+    'stripe_checkout_session_id',
+    'stripe_payment_intent_id',
+    'stripe_charge_id',
+    'user_id',
+    'customer_email',
+    'plan',
+    'period_start',
+    'period_end',
+  ]
+
+  for (const key of preserveIfNull) {
+    if (next[key] === null || next[key] === undefined) {
+      delete next[key]
+    }
+  }
+
+  return next
 }
 
 async function resolveOwner(input: {
@@ -149,6 +204,8 @@ async function resolveOwner(input: {
 async function findExistingRevenueEvent(input: {
   stripeInvoiceId?: string | null
   stripeCheckoutSessionId?: string | null
+  stripePaymentIntentId?: string | null
+  stripeChargeId?: string | null
   stripeEventId?: string | null
 }) {
   const supabase = getSupabaseAdminClient()
@@ -157,6 +214,8 @@ async function findExistingRevenueEvent(input: {
   const candidates = [
     input.stripeInvoiceId ? { column: 'stripe_invoice_id', value: input.stripeInvoiceId } : null,
     input.stripeCheckoutSessionId ? { column: 'stripe_checkout_session_id', value: input.stripeCheckoutSessionId } : null,
+    input.stripePaymentIntentId ? { column: 'stripe_payment_intent_id', value: input.stripePaymentIntentId } : null,
+    input.stripeChargeId ? { column: 'stripe_charge_id', value: input.stripeChargeId } : null,
     input.stripeEventId ? { column: 'stripe_event_id', value: input.stripeEventId } : null,
   ].filter(Boolean) as Array<{ column: string; value: string }>
 
@@ -202,6 +261,8 @@ export async function upsertStripeRevenueEvent(input: RevenueEventInput) {
     stripe_subscription_id: input.stripeSubscriptionId || null,
     stripe_invoice_id: input.stripeInvoiceId || null,
     stripe_checkout_session_id: input.stripeCheckoutSessionId || null,
+    stripe_payment_intent_id: input.stripePaymentIntentId || null,
+    stripe_charge_id: input.stripeChargeId || null,
     user_id: owner.userId || null,
     customer_email: input.customerEmail || null,
     plan: owner.plan || (input.plan ? normalizePlanId(input.plan) : null),
@@ -222,11 +283,13 @@ export async function upsertStripeRevenueEvent(input: RevenueEventInput) {
   const existingId = await findExistingRevenueEvent({
     stripeInvoiceId: payload.stripe_invoice_id,
     stripeCheckoutSessionId: payload.stripe_checkout_session_id,
+    stripePaymentIntentId: payload.stripe_payment_intent_id,
+    stripeChargeId: payload.stripe_charge_id,
     stripeEventId: payload.stripe_event_id,
   })
 
   const request = existingId
-    ? supabase.from('stripe_revenue_events').update(payload).eq('id', existingId).select('id').single()
+    ? supabase.from('stripe_revenue_events').update(payloadForUpdate(payload)).eq('id', existingId).select('id').single()
     : supabase.from('stripe_revenue_events').insert(payload).select('id').single()
 
   const { data, error } = await request
@@ -244,7 +307,15 @@ export async function upsertStripeRevenueEvent(input: RevenueEventInput) {
     throw error
   }
 
-  return { ok: true, id: data?.id as string | undefined, netRevenueCents }
+  return {
+    ok: true,
+    id: data?.id as string | undefined,
+    amountPaidCents,
+    amountRefundedCents,
+    netRevenueCents,
+    fullyRefunded: amountPaidCents > 0 && amountRefundedCents >= amountPaidCents,
+    zeroPaid: amountPaidCents === 0,
+  }
 }
 
 export async function upsertStripeRevenueFromInvoice(input: {
@@ -253,6 +324,8 @@ export async function upsertStripeRevenueFromInvoice(input: {
   source: string
   rawType: string
   refundedCents?: number | null
+  stripePaymentIntentId?: string | null
+  stripeChargeId?: string | null
 }) {
   const invoice = asRecord(input.invoice)
   const lines = asRecord(invoice.lines)
@@ -262,6 +335,8 @@ export async function upsertStripeRevenueFromInvoice(input: {
   const metadataPlan = stringFrom(asRecord(invoice.metadata).plan)
   const plan = firstMatchingPlanFromLines(lines) || (metadataPlan ? normalizePlanId(metadataPlan) : null)
   const amountDiscountCents = totalDiscountCents(invoice.total_discount_amounts)
+  const paymentIntentId = input.stripePaymentIntentId || firstInvoicePaymentIntentId(invoice)
+  const chargeId = input.stripeChargeId || firstInvoiceChargeId(invoice)
 
   return upsertStripeRevenueEvent({
     stripeEventId: input.stripeEventId || null,
@@ -269,6 +344,8 @@ export async function upsertStripeRevenueFromInvoice(input: {
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
     stripeInvoiceId: stringFrom(invoice.id),
+    stripePaymentIntentId: paymentIntentId,
+    stripeChargeId: chargeId,
     customerEmail: stringFrom(invoice.customer_email),
     plan,
     currency: stringFrom(invoice.currency) || 'eur',
@@ -289,6 +366,32 @@ export async function upsertStripeRevenueFromInvoice(input: {
   })
 }
 
+export async function getInvoicePaymentRefs(stripe: Stripe, invoiceId: string | null | undefined) {
+  if (!invoiceId) return { stripePaymentIntentId: null, stripeChargeId: null }
+
+  const payments = await stripe.invoicePayments.list({
+    invoice: invoiceId,
+    limit: 10,
+    expand: ['data.payment.payment_intent', 'data.payment.charge'],
+  })
+
+  for (const item of payments.data) {
+    const payment = asRecord(asRecord(item).payment)
+    const paymentIntent = payment.payment_intent
+    const paymentIntentId = getStripeId(paymentIntent)
+    const chargeId = getStripeId(payment.charge) || latestChargeIdFromPaymentIntent(paymentIntent)
+
+    if (paymentIntentId || chargeId) {
+      return {
+        stripePaymentIntentId: paymentIntentId,
+        stripeChargeId: chargeId,
+      }
+    }
+  }
+
+  return { stripePaymentIntentId: null, stripeChargeId: null }
+}
+
 export async function upsertStripeRevenueFromCheckoutSession(input: {
   session: Stripe.Checkout.Session
   stripeEventId?: string | null
@@ -299,6 +402,8 @@ export async function upsertStripeRevenueFromCheckoutSession(input: {
   const metadata = asRecord(session.metadata)
   const subscriptionId = getStripeId(session.subscription) || stringFrom(metadata.stripe_subscription_id)
   const customerId = getStripeId(session.customer)
+  const paymentIntentId = getStripeId(session.payment_intent)
+  const chargeId = latestChargeIdFromPaymentIntent(session.payment_intent)
   const plan =
     stringFrom(metadata.to_plan) ||
     stringFrom(metadata.plan) ||
@@ -311,6 +416,8 @@ export async function upsertStripeRevenueFromCheckoutSession(input: {
     stripeSubscriptionId: subscriptionId,
     stripeInvoiceId: getStripeId(session.invoice),
     stripeCheckoutSessionId: stringFrom(session.id),
+    stripePaymentIntentId: paymentIntentId,
+    stripeChargeId: chargeId,
     userId: stringFrom(metadata.user_id) || stringFrom(session.client_reference_id),
     customerEmail: stringFrom(asRecord(session.customer_details).email) || stringFrom(session.customer_email),
     plan,
@@ -342,11 +449,15 @@ export async function upsertStripeRevenueFromChargeRefund(input: {
 }) {
   const charge = asRecord(input.charge)
   const invoiceId = getStripeId(charge.invoice)
+  const chargeId = stringFrom(charge.id)
+  const paymentIntentId = getStripeId(charge.payment_intent)
   if (!invoiceId) {
     return upsertStripeRevenueEvent({
       stripeEventId: input.stripeEventId || null,
       stripeCreatedAt: stripeDate(charge.created),
       stripeCustomerId: getStripeId(charge.customer),
+      stripePaymentIntentId: paymentIntentId,
+      stripeChargeId: chargeId,
       amountPaidCents: cents(charge.amount),
       amountRefundedCents: cents(charge.amount_refunded),
       currency: stringFrom(charge.currency) || 'eur',
@@ -364,5 +475,7 @@ export async function upsertStripeRevenueFromChargeRefund(input: {
     source: input.source,
     rawType: input.rawType,
     refundedCents: cents(charge.amount_refunded),
+    stripePaymentIntentId: paymentIntentId,
+    stripeChargeId: chargeId,
   })
 }

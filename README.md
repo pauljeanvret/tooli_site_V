@@ -207,13 +207,17 @@ En dÃ©veloppement, la rÃ©ponse JSON expose notamment `skippedBeforeAi`, `ski
 La page interne `/admin/finance` est reservee aux comptes listes dans `ADMIN_EMAILS`.
 Elle affiche, par mois et par client :
 
-- revenu mensuel estime depuis le plan actif ;
+- revenu Stripe net exact quand une facture/session est historisee dans `stripe_revenue_events` ;
+- remboursements Stripe deduits du revenu net ;
+- MRR theorique separe depuis le plan actif, sans addition au revenu principal ;
 - cout IA estime depuis `ai_usage_events` ;
-- profit et marge estimes ;
+- profit et marge ;
 - appels IA par action, modele et client.
 
+Le webhook Stripe historise les paiements dans `stripe_revenue_events` sans changer le checkout. Pour rattraper les factures deja emises, un admin peut appeler `POST /api/admin/finance/sync-stripe` avec `{ "month": "YYYY-MM" }`.
+
 Les logs de cout ne stockent pas les prompts, corps Gmail, objets d'emails, jetons OAuth, cles API ou secrets.
-Les revenus sont estimes tant que les montants exacts des factures Stripe ne sont pas historises dans Supabase.
+Si un modele IA n'est pas reconnu, configurez `LLM_DEFAULT_INPUT_COST_PER_1M` et `LLM_DEFAULT_OUTPUT_COST_PER_1M` ou les variables specifiques `LLM_*_INPUT_COST_PER_1M` / `LLM_*_OUTPUT_COST_PER_1M`.
 
 ### Delais MVP par offre
 

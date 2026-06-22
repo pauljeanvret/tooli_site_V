@@ -22,7 +22,11 @@ type FinanceCustomer = {
   estimatedRevenueEur: number
   estimatedPlanRevenueEur: number
   exactStripeRevenueEur: number
-  revenueSource: 'exact_stripe' | 'estimated_plan'
+  revenueSource: 'exact_stripe' | 'exact_stripe_refunded' | 'none'
+  hasExactStripeRevenue: boolean
+  hasStripeRefund: boolean
+  isFullyRefunded: boolean
+  isZeroPaidStripe: boolean
   revenueEventsCount: number
   stripeAmountPaidEur: number
   stripeDiscountEur: number
@@ -66,7 +70,13 @@ type FinancePayload = {
     estimatedRevenueEur: number
     exactStripeRevenueEur: number
     estimatedPlanRevenueEur: number
+    theoreticalMrrEur: number
+    stripeRefundedRevenueEur: number
     customersWithExactStripeRevenue: number
+    customersMissingExactStripeRevenue: number
+    customersWithRefundedStripeRevenue: number
+    fullyRefundedPaymentsDetected: number
+    zeroPaidExactInvoices: number
     aiCostEur: number
     estimatedProfitEur: number
     averageAiCostPerActiveCustomerEur: number
@@ -92,6 +102,11 @@ type FinancePayload = {
     zeroCostEventsWithTokens: number
     ignoredOtherEvents: number
     ignoredZeroPlaceholderEvents: number
+    customersMissingExactStripeRevenue: number
+    customersWithRefundedStripeRevenue: number
+    fullyRefundedPaymentsDetected: number
+    zeroPaidExactInvoices: number
+    stripeRefundedRevenueEur: number
   }
   customers?: FinanceCustomer[]
 }
@@ -105,6 +120,11 @@ type StripeSyncPayload = {
   customersChecked?: number
   invoicesFetched?: number
   checkoutSessionsFetched?: number
+  chargesFetched?: number
+  refundsFound?: number
+  fullyRefundedPaymentsDetected?: number
+  zeroPaidInvoicesDetected?: number
+  rowsUpdatedDueToRefunds?: number
   revenueEventsSaved?: number
   tableMissing?: boolean
   code?: string
@@ -181,6 +201,22 @@ function actionLabel(action: string | null) {
   if (action === 'telegram_summary') return 'Résumé Telegram'
   if (action === 'profile_generation') return 'Profil onboarding'
   return action || 'Autre'
+}
+
+function revenueSourceLabel(customer: FinanceCustomer) {
+  if (customer.revenueSource === 'exact_stripe_refunded') return 'Stripe exact · remboursé'
+  if (customer.revenueSource === 'exact_stripe') return customer.isZeroPaidStripe ? 'Stripe exact · 0 EUR' : 'Stripe exact'
+  return 'Aucun paiement exact'
+}
+
+function revenueBadgeClass(customer: FinanceCustomer) {
+  if (customer.revenueSource === 'exact_stripe_refunded') {
+    return 'bg-blue-50 text-blue-800 dark:bg-blue-300/10 dark:text-blue-100'
+  }
+  if (customer.revenueSource === 'exact_stripe') {
+    return 'bg-emerald-50 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-100'
+  }
+  return 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70'
 }
 
 export function AdminFinanceClient() {
@@ -264,11 +300,17 @@ export function AdminFinanceClient() {
 
     await loadFinance()
     setSyncMessage(
-      `${syncPayload.message || 'Synchronisation Stripe terminée.'} Clients scannés : ${
+      `${syncPayload.message || 'Synchronisation Stripe terminee.'} Clients scannes : ${
         syncPayload.customersChecked ?? 0
-      }. Factures importées : ${syncPayload.invoicesFetched ?? 0}. Sessions importées : ${
+      }. Factures importees : ${syncPayload.invoicesFetched ?? 0}. Sessions importees : ${
         syncPayload.checkoutSessionsFetched ?? 0
-      }. Lignes exactes enregistrées : ${syncPayload.revenueEventsSaved ?? 0}.`,
+      }. Charges inspectees : ${syncPayload.chargesFetched ?? 0}. Remboursements trouves : ${
+        syncPayload.refundsFound ?? 0
+      }. Paiements totalement rembourses : ${
+        syncPayload.fullyRefundedPaymentsDetected ?? 0
+      }. Factures a 0 EUR : ${syncPayload.zeroPaidInvoicesDetected ?? 0}. Lignes mises a jour apres remboursement : ${
+        syncPayload.rowsUpdatedDueToRefunds ?? 0
+      }. Lignes exactes enregistrees : ${syncPayload.revenueEventsSaved ?? 0}.`,
     )
     setIsSyncingStripe(false)
   }
@@ -289,7 +331,7 @@ export function AdminFinanceClient() {
               Finance & coûts IA
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 dark:text-white/60">
-              Suivi interne par client : revenus Stripe exacts quand disponibles, fallback estimé par plan, coûts IA, marge et activité Gmail.
+              Suivi interne par client : revenu net Stripe reel, remboursements deduits, MRR theorique separe, couts IA, marge et activite Gmail.
             </p>
             <AdminNav active="finance" />
           </div>
@@ -379,6 +421,19 @@ export function AdminFinanceClient() {
           </div>
         ) : null}
 
+        {warnings?.customersMissingExactStripeRevenue ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100">
+            Certains clients n'ont aucun paiement Stripe exact sur ce mois. Ils ne sont pas inclus dans le revenu reel.
+          </div>
+        ) : null}
+
+        {warnings?.customersWithRefundedStripeRevenue ? (
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900 dark:border-blue-300/20 dark:bg-blue-300/10 dark:text-blue-100">
+            Les remboursements Stripe sont deduits du revenu net. Total rembourse ce mois :{' '}
+            {formatEuro(warnings.stripeRefundedRevenueEur || 0)}.
+          </div>
+        ) : null}
+
         {warnings?.aiCostPricingMissing ? (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100">
             <p className="font-extrabold">{warnings.aiCostPricingMessage}</p>
@@ -395,11 +450,12 @@ export function AdminFinanceClient() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {[
-            { label: 'Revenu', value: summary ? formatEuro(summary.estimatedRevenueEur) : '...', icon: EuroIcon },
+            { label: 'Revenu Stripe net', value: summary ? formatEuro(summary.estimatedRevenueEur) : '...', icon: EuroIcon },
+            { label: 'MRR theorique', value: summary ? formatEuro(summary.theoreticalMrrEur) : '...', icon: TrendingUp },
             { label: 'Coût IA', value: summary ? formatEuroSmart(summary.aiCostEur) : '...', icon: BarChart3 },
-            { label: 'Profit estimé', value: summary ? formatEuro(summary.estimatedProfitEur) : '...', icon: TrendingUp },
+            { label: 'Profit net estimé', value: summary ? formatEuro(summary.estimatedProfitEur) : '...', icon: TrendingUp },
             { label: 'Clients actifs', value: summary ? `${summary.activeCustomers}/${summary.totalCustomers}` : '...', icon: Users },
           ].map((card) => {
             const Icon = card.icon
@@ -416,7 +472,7 @@ export function AdminFinanceClient() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/65">
-          Revenus exacts Stripe pour {summary?.customersWithExactStripeRevenue || 0} client(s). Les autres lignes restent en estimation plan jusqu’à synchronisation ou réception webhook Stripe.
+          Revenu Stripe net exact pour {summary?.customersWithExactStripeRevenue || 0} client(s). Les clients sans paiement exact ce mois ne sont pas inclus dans le revenu reel ; leur MRR theorique reste affiche separement.
           <span className="mt-1 block text-xs text-slate-500 dark:text-white/45">
             Appels IA ce mois : {formatNumber(summary?.aiCalls || 0)} · Dernier usage IA : {formatDate(summary?.latestAiUsageAt || null)}
           </span>
@@ -450,18 +506,12 @@ export function AdminFinanceClient() {
                     </div>
                     <Metric label="Plan" value={`${customer.planName} · ${customer.subscriptionStatus}`} />
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Revenu</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Revenu Stripe net</p>
                       <p className="mt-1 text-sm font-extrabold text-slate-800 dark:text-white/75">
                         {formatEuro(customer.estimatedRevenueEur)}
                       </p>
-                      <span
-                        className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-extrabold ${
-                          customer.revenueSource === 'exact_stripe'
-                            ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-100'
-                            : 'bg-amber-50 text-amber-800 dark:bg-amber-300/10 dark:text-amber-100'
-                        }`}
-                      >
-                        {customer.revenueSource === 'exact_stripe' ? 'Exact Stripe' : 'Estimé plan'}
+                      <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-extrabold ${revenueBadgeClass(customer)}`}>
+                        {revenueSourceLabel(customer)}
                       </span>
                     </div>
                     <Metric label="Coût IA" value={formatEuroSmart(customer.aiCostEur)} />
@@ -479,10 +529,11 @@ export function AdminFinanceClient() {
                             <Detail label="Telegram" value={customer.telegramConnected ? 'Connecté' : 'Non connecté'} />
                             <Detail label="Période" value={formatDate(customer.currentPeriodEnd)} />
                             <Detail label="Stripe customer" value={customer.stripeCustomerId || 'Non trouvé'} />
-                            <Detail label="Source revenu" value={customer.revenueSource === 'exact_stripe' ? 'Exact Stripe' : 'Estimation plan'} />
+                            <Detail label="Source revenu" value={revenueSourceLabel(customer)} />
                             <Detail label="Payé Stripe" value={formatEuro(customer.stripeAmountPaidEur)} />
                             <Detail label="Remise Stripe" value={formatEuro(customer.stripeDiscountEur)} />
                             <Detail label="Remboursé Stripe" value={formatEuro(customer.stripeRefundedEur)} />
+                            <Detail label="MRR theorique" value={formatEuro(customer.estimatedPlanRevenueEur)} />
                           </dl>
                         </div>
                         <div className="rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
