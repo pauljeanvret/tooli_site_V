@@ -88,7 +88,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <motion.div
-          className="mt-12 border-t border-toolia-border-subtle pt-8 text-center text-xs text-toolia-text-secondary"
+          className="mt-12 border-t border-toolia-border-subtle pt-8 text-center text-sm font-medium text-slate-600 dark:text-white/[0.62]"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.4 }}

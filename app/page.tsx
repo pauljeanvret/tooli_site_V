@@ -7,17 +7,17 @@ import { Stats } from '@/components/Stats'
 import { Behind } from '@/components/Behind'
 import { FAQ } from '@/components/FAQ'
 import { ContactForm } from '@/components/ContactForm'
-import { HomeIntroOverlay } from '@/components/HomeIntroOverlay'
+import { AutomationMotionStrip } from '@/components/AutomationMotionStrip'
 
 export default function Home() {
   return (
     <div className="bg-toolia-bg-main">
-      <HomeIntroOverlay />
       <Hero />
       <HowItWorks />
       <Values />
       <ProductDemoVideo />
       <ProductShowcase />
+      <AutomationMotionStrip className="py-8 sm:py-10" />
       <Stats />
       <FAQ />
       <Behind />

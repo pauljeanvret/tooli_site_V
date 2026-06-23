@@ -15,17 +15,6 @@ type NavbarAccount = {
   email: string
 }
 
-function supportsHomeIntroReplay() {
-  if (typeof window === 'undefined') return false
-
-  const ua = window.navigator.userAgent || ''
-  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
-    (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1)
-  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua)
-
-  return !isIOS && !isSafari
-}
-
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
@@ -79,25 +68,11 @@ export const Navbar: React.FC = () => {
   const profileInitial = (account?.name || account?.email || 'T').slice(0, 1).toUpperCase()
 
   const handleBrandClick = () => {
-    const shouldReplayIntro = supportsHomeIntroReplay()
-
-    if (shouldReplayIntro) {
-      try {
-        window.sessionStorage.setItem('tooliaForceIntro', '1')
-      } catch {
-        // Storage can be unavailable in private or restricted browsing modes.
-      }
-    }
-
     setIsOpen(false)
     setAccountMenuOpen(false)
 
     if (window.location.pathname === '/') {
-      if (shouldReplayIntro) {
-        window.dispatchEvent(new Event('toolia:playIntro'))
-      } else {
-        window.scrollTo({ top: 0, behavior: 'auto' })
-      }
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
 

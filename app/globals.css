@@ -202,6 +202,14 @@ body {
     animation: none;
     transform: translateX(0);
   }
+
+  .toolia-marquee,
+  .toolia-marquee-reverse {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 /* Heading styles */

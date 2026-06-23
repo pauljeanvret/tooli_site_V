@@ -19,7 +19,7 @@ export const HowItWorks: React.FC = () => {
             <Badge
               variant="primary"
               size="md"
-              className="shadow-sm backdrop-blur-md dark:border-white/25 dark:bg-white/12 dark:text-white"
+              className="border-slate-300 bg-slate-100 text-slate-800 shadow-sm backdrop-blur-md dark:border-white/25 dark:bg-white/12 dark:text-white"
             >
               {copy.howItWorks.setupTime}
             </Badge>

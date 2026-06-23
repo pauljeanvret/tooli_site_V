@@ -43,35 +43,35 @@ const sections = [
 ]
 
 const googleUserDataItems = [
-  'Basic Google account information required for authentication, such as the user’s email address and profile information.',
-  'Gmail data required to classify incoming emails, apply labels, identify important messages, and prepare draft replies.',
-  'Gmail labels and draft-related information needed to operate the automation selected by the user.',
+  'Les informations de base du compte Google nécessaires à l’authentification, comme l’adresse email et les informations de profil.',
+  'Les données Gmail nécessaires pour classer les emails entrants, appliquer des labels, identifier les messages importants et préparer des brouillons de réponse.',
+  'Les labels Gmail et les informations liées aux brouillons nécessaires au fonctionnement de l’automatisation choisie par l’utilisateur.',
 ]
 
 const protectionItems = [
-  'Toolia uses HTTPS/TLS to protect data in transit.',
-  'Google OAuth tokens and automation configuration data are handled server-side and are not exposed publicly in the browser.',
-  'Access to production systems and stored data is restricted to authorized service operations.',
-  'Secrets and API credentials are stored using environment variables or secure service configuration.',
-  'Toolia avoids logging Gmail message content, OAuth tokens, passwords, or other sensitive Google user data.',
-  'Analytics events do not include Gmail addresses, email content, Google tokens, message content, or user IDs.',
-  'Human access to Google user data is not allowed except when necessary for security, debugging, legal compliance, or support requested by the user.',
+  'Toolia utilise HTTPS/TLS pour protéger les données en transit.',
+  'Les jetons Google OAuth et les données de configuration d’automatisation sont traités côté serveur et ne sont pas exposés publiquement dans le navigateur.',
+  'L’accès aux systèmes de production et aux données stockées est limité aux opérations de service autorisées.',
+  'Les secrets et identifiants API sont stockés via des variables d’environnement ou des configurations de service sécurisées.',
+  'Toolia évite de journaliser le contenu des messages Gmail, les jetons OAuth, les mots de passe ou d’autres données Google utilisateur sensibles.',
+  'Les événements d’analyse n’incluent pas les adresses Gmail, le contenu des emails, les jetons Google, le contenu des messages ou les identifiants utilisateur.',
+  'L’accès humain aux données Google utilisateur n’est autorisé que si cela est nécessaire pour la sécurité, le débogage, la conformité légale ou une demande de support initiée par l’utilisateur.',
 ]
 
 const retentionItems = [
-  'Toolia retains Google OAuth tokens and Gmail automation configuration only for as long as the user keeps their Toolia account active and their Gmail account connected.',
-  'Gmail message content is processed to provide the automation features and is not permanently stored as a standalone archive by Toolia.',
-  'Draft replies created by Toolia remain in the user’s Gmail account and are controlled by the user.',
-  'Labels applied by Toolia remain in the user’s Gmail account and can be managed or removed by the user.',
-  'Operational logs, if any, are kept only for security, debugging, and service reliability purposes and are deleted or overwritten within a reasonable period.',
+  'Toolia conserve les jetons Google OAuth et la configuration d’automatisation Gmail uniquement tant que l’utilisateur garde son compte Toolia actif et son compte Gmail connecté.',
+  'Le contenu des messages Gmail est traité pour fournir les fonctionnalités d’automatisation et n’est pas stocké de façon permanente comme archive indépendante par Toolia.',
+  'Les brouillons créés par Toolia restent dans le compte Gmail de l’utilisateur et sont contrôlés par l’utilisateur.',
+  'Les labels appliqués par Toolia restent dans le compte Gmail de l’utilisateur et peuvent être gérés ou supprimés par l’utilisateur.',
+  'Les logs opérationnels, le cas échéant, sont conservés uniquement pour la sécurité, le débogage et la fiabilité du service, puis supprimés ou remplacés dans un délai raisonnable.',
 ]
 
 const deletionItems = [
-  'Users can disconnect Gmail from their Toolia dashboard, which stops Toolia from accessing the Gmail account.',
-  'Users can also revoke Toolia’s access at any time from their Google Account permissions page.',
-  'When a user disconnects Gmail or requests account deletion, Toolia deletes or deactivates the Google OAuth tokens associated with that account.',
-  `Users can request deletion of their Toolia account and related Google user data by contacting: ${contactEmail}.`,
-  'Deletion requests are processed within 30 days, unless retention is required for legal, security, or fraud-prevention reasons.',
+  'Les utilisateurs peuvent déconnecter Gmail depuis leur dashboard Toolia, ce qui empêche Toolia d’accéder au compte Gmail.',
+  'Les utilisateurs peuvent aussi révoquer l’accès de Toolia à tout moment depuis la page des autorisations de leur compte Google.',
+  'Lorsqu’un utilisateur déconnecte Gmail ou demande la suppression de son compte, Toolia supprime ou désactive les jetons Google OAuth associés à ce compte.',
+  `Les utilisateurs peuvent demander la suppression de leur compte Toolia et des données Google utilisateur associées en contactant : ${contactEmail}.`,
+  'Les demandes de suppression sont traitées sous 30 jours, sauf si une conservation est nécessaire pour des raisons légales, de sécurité ou de prévention de la fraude.',
 ]
 
 function BulletList({ items }: { items: string[] }) {
@@ -104,11 +104,11 @@ export default function PrivacyPage() {
           ))}
 
           <article className="rounded-card border border-toolia-border-subtle bg-toolia-card p-6">
-            <h2 className="text-xl font-semibold text-toolia-text">Google User Data: Protection, Retention and Deletion</h2>
+            <h2 className="text-xl font-semibold text-toolia-text">Données utilisateur Google : protection, conservation et suppression</h2>
             <div className="mt-4 space-y-6">
               <div>
                 <p className="text-sm leading-7 text-toolia-text-secondary">
-                  Toolia uses Google OAuth to let users connect their Gmail account to the Toolia service. Toolia only requests the permissions needed to provide its visible user-facing Gmail automation features.
+                  Toolia utilise Google OAuth pour permettre aux utilisateurs de connecter leur compte Gmail au service Toolia. Toolia demande uniquement les autorisations nécessaires pour fournir les fonctionnalités d’automatisation Gmail visibles et configurées par l’utilisateur.
                 </p>
               </div>
 
@@ -119,32 +119,32 @@ export default function PrivacyPage() {
 
               <div>
                 <p className="text-sm leading-7 text-toolia-text-secondary">
-                  Toolia uses Google user data only to provide and improve the Gmail automation features that the user has configured in the Toolia interface. Toolia does not sell Google user data, does not use Google user data for advertising, does not use Google user data for retargeting or personalized ads, and does not transfer Google user data to data brokers or advertising platforms.
+                  Toolia utilise les données utilisateur Google uniquement pour fournir et améliorer les fonctionnalités d’automatisation Gmail configurées par l’utilisateur dans l’interface Toolia. Toolia ne vend pas les données utilisateur Google, ne les utilise pas pour la publicité, ne les utilise pas pour le reciblage ou les publicités personnalisées, et ne les transfère pas à des courtiers en données ou plateformes publicitaires.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-toolia-text">Data protection mechanisms:</h3>
+                <h3 className="text-sm font-semibold text-toolia-text">Mécanismes de protection des données :</h3>
                 <BulletList items={protectionItems} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-toolia-text">Retention:</h3>
+                <h3 className="text-sm font-semibold text-toolia-text">Conservation :</h3>
                 <BulletList items={retentionItems} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-toolia-text">Deletion:</h3>
+                <h3 className="text-sm font-semibold text-toolia-text">Suppression :</h3>
                 <BulletList items={deletionItems} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-toolia-text">Limited Use:</h3>
+                <h3 className="text-sm font-semibold text-toolia-text">Utilisation limitée (Limited Use) :</h3>
                 <p className="mt-3 text-sm leading-7 text-toolia-text-secondary">
-                  Toolia’s use and transfer of information received from Google APIs complies with the Google API Services User Data Policy, including the Limited Use requirements.
+                  L’utilisation et le transfert par Toolia des informations reçues depuis les API Google respectent la Google API Services User Data Policy, y compris les exigences Limited Use.
                 </p>
                 <p className="mt-3 text-sm leading-7 text-toolia-text-secondary">
-                  Toolia does not use Google user data to train, improve, or fine-tune generalized artificial intelligence or machine learning models. Google user data is only processed to provide the user-facing Gmail automation features configured by the user, such as email classification, labeling, priority detection, and draft preparation.
+                  Toolia n’utilise pas les données utilisateur Google pour entraîner, améliorer ou affiner des modèles généraux d’intelligence artificielle ou de machine learning. Les données utilisateur Google sont uniquement traitées pour fournir les fonctionnalités Gmail configurées par l’utilisateur, comme la classification des emails, l’application de labels, la détection de priorité et la préparation de brouillons.
                 </p>
               </div>
             </div>

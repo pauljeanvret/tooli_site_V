@@ -3,7 +3,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Button } from './Button'
-import { AutomationMotionStrip } from './AutomationMotionStrip'
 import { copy } from '@/lib/copy'
 import { getTooliaClientState, routeToTooliaStart } from '@/lib/saas/client-navigation'
 import { trackEvent } from '@/lib/analytics'
@@ -49,7 +48,7 @@ export const Hero: React.FC = () => {
       {/* Place the hero poster at public/videos/hero-desk-poster.jpg */}
       {/* Optional: generate hero-desk-loop.mp4 for seamless ping-pong loop */}
       <video
-        className="hero-video absolute inset-0 h-full w-full scale-[1.035] object-cover object-[55%_center] brightness-[1.08] saturate-[0.98] transition duration-500 dark:brightness-[0.76] dark:contrast-[1.04] dark:saturate-[0.92] sm:object-center sm:brightness-[1.02] sm:saturate-[0.95] sm:dark:brightness-[0.55] sm:dark:contrast-[1.08] sm:dark:saturate-[0.85]"
+        className="hero-video absolute inset-0 h-full w-full object-cover object-[55%_center] sm:object-center"
         autoPlay
         muted
         loop
@@ -62,10 +61,9 @@ export const Hero: React.FC = () => {
         <source src="/videos/hero-desk.mp4" type="video/mp4" />
       </video>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-white/36 via-white/12 to-white/42 dark:from-[#030712]/36 dark:via-[#06101f]/20 dark:to-[#030712]/46 sm:from-white/60 sm:via-white/24 sm:to-white/68 sm:dark:from-[#030712]/70 sm:dark:via-[#06101f]/48 sm:dark:to-[#030712]/78" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.54),rgba(255,255,255,0.2)_42%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.58),rgba(3,7,18,0.28)_46%,transparent_72%)] sm:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.26),transparent_55%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.62),rgba(3,7,18,0.34)_42%,transparent_68%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.22),rgba(255,255,255,0.04)_44%,transparent_68%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.3),transparent_60%)] sm:bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.08)_38%,transparent_64%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.44),transparent_58%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-toolia-bg-main to-transparent sm:h-36" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/38 via-white/18 to-white/62 dark:from-[#030712]/72 dark:via-[#06101f]/58 dark:to-[#030712]/84" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.28),rgba(255,255,255,0.1)_42%,transparent_68%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.42),rgba(3,7,18,0.24)_46%,transparent_72%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-toolia-bg-main via-toolia-bg-main/60 to-transparent sm:h-40" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-5 pb-32 pt-12 text-center sm:px-6 sm:py-16 md:px-8 lg:px-10">
         <motion.div
@@ -90,7 +88,7 @@ export const Hero: React.FC = () => {
           />
 
           <motion.p
-            className="mt-4 max-w-[22rem] text-base leading-7 text-slate-800 drop-shadow-[0_2px_12px_rgba(255,255,255,0.4)] dark:text-white/90 dark:drop-shadow-[0_2px_14px_rgba(0,0,0,0.48)] sm:mt-5 sm:max-w-3xl sm:text-[clamp(1.1rem,1.45vw,1.55rem)] sm:leading-relaxed sm:text-toolia-text-secondary sm:drop-shadow-none sm:dark:text-white/80 sm:dark:drop-shadow-none"
+            className="mt-4 max-w-[22rem] text-base leading-7 text-slate-800 drop-shadow-[0_2px_12px_rgba(255,255,255,0.4)] dark:text-white/95 dark:drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)] sm:mt-5 sm:max-w-3xl sm:text-[clamp(1.1rem,1.45vw,1.55rem)] sm:leading-relaxed sm:text-slate-700 sm:dark:text-white/[0.88]"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -126,7 +124,7 @@ export const Hero: React.FC = () => {
                 })
                 window.location.href = '/diagnostic'
               }}
-              className="w-full bg-white/60 backdrop-blur-sm sm:w-auto dark:bg-white/10"
+              className="w-full border-white/70 bg-white/[0.92] text-slate-950 shadow-[0_16px_36px_rgba(15,23,42,0.14)] backdrop-blur-md hover:bg-white sm:w-auto dark:border-white/35 dark:bg-white/[0.18] dark:text-white dark:hover:bg-white/25"
             >
               Diagnostiquer ma boîte mail
             </Button>
@@ -147,7 +145,7 @@ export const Hero: React.FC = () => {
           </motion.div>
 
           <motion.p
-            className="mt-4 text-xs font-medium text-slate-700 drop-shadow-[0_2px_10px_rgba(255,255,255,0.36)] dark:text-white/75 dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.46)] sm:mt-6 sm:font-normal sm:text-toolia-text-secondary sm:drop-shadow-none sm:dark:text-toolia-text-secondary"
+            className="mt-4 text-xs font-semibold text-slate-800 drop-shadow-[0_2px_10px_rgba(255,255,255,0.36)] dark:text-white/[0.85] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.46)] sm:mt-6 sm:font-medium"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -155,8 +153,6 @@ export const Hero: React.FC = () => {
           </motion.p>
         </motion.div>
       </div>
-
-      <AutomationMotionStrip className="absolute bottom-4 z-30 sm:bottom-8" />
     </section>
   )
 }

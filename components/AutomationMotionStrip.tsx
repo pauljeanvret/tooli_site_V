@@ -32,21 +32,16 @@ const secondRow = [
   'Aucun envoi automatique',
 ]
 
-function MotionRow({ items, reverse = false, compact = false }: { items: string[]; reverse?: boolean; compact?: boolean }) {
-  const repeated = [...items, ...items, ...items, ...items]
+function MotionRow({ items, reverse = false }: { items: string[]; reverse?: boolean }) {
+  const repeated = [...items, ...items, ...items]
 
   return (
     <div className="overflow-hidden">
-      <div className={cn('flex w-max min-w-[220vw] flex-nowrap py-1', compact ? 'gap-2' : 'gap-3', reverse ? 'toolia-marquee-reverse' : 'toolia-marquee')}>
+      <div className={cn('flex w-max min-w-[180vw] flex-nowrap gap-3 py-1', reverse ? 'toolia-marquee-reverse' : 'toolia-marquee')}>
         {repeated.map((item, index) => (
           <span
             key={`${item}-${index}`}
-            className={cn(
-              'inline-flex whitespace-nowrap rounded-full border border-slate-200/90 bg-white/90 font-semibold text-slate-900 shadow-[0_8px_28px_rgba(15,23,42,0.1)] backdrop-blur-lg dark:border-white/20 dark:bg-slate-900/78 dark:text-white/90 dark:shadow-[0_10px_30px_rgba(0,0,0,0.24)]',
-              compact
-                ? 'border-white/80 bg-white/90 px-3 py-1.5 text-[0.68rem] text-slate-950 shadow-sm dark:border-white/80 dark:bg-white/90 dark:text-slate-950'
-                : 'px-4 py-2 text-xs',
-            )}
+            className="inline-flex whitespace-nowrap rounded-full border border-slate-300/90 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur-lg dark:border-white/15 dark:bg-slate-900/[0.86] dark:text-white/[0.85]"
           >
             {item}
           </span>
@@ -61,13 +56,20 @@ export function AutomationMotionStrip({ className = '' }: { className?: string }
 
   return (
     <div className={cn('pointer-events-none relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-0', className)}>
-      <div className="relative border-y border-slate-200/80 bg-white/70 py-1.5 shadow-[0_18px_70px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:border-white/20 dark:bg-slate-950/60 dark:shadow-[0_18px_80px_rgba(0,0,0,0.42)] sm:py-3">
-        <div className="overflow-hidden sm:hidden [mask-image:linear-gradient(to_right,transparent_0%,black_4%,black_96%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_4%,black_96%,transparent_100%)]">
-          <MotionRow items={mobileProofChips} compact />
+      <div className="relative border-y border-slate-200/90 bg-white/[0.82] py-3 shadow-[0_18px_58px_rgba(15,23,42,0.11)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-slate-950/[0.74] dark:shadow-[0_18px_72px_rgba(0,0,0,0.32)] sm:py-3">
+        <div className="flex flex-wrap justify-center gap-2 px-4 sm:hidden">
+          {mobileProofChips.map((item) => (
+            <span
+              key={item}
+              className="inline-flex rounded-full border border-slate-300/90 bg-white/[0.96] px-3 py-1.5 text-[0.72rem] font-semibold text-slate-800 shadow-sm dark:border-white/15 dark:bg-slate-900/[0.88] dark:text-white/[0.86]"
+            >
+              {item}
+            </span>
+          ))}
         </div>
         <div className="hidden sm:block">
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white/95 via-white/54 to-transparent dark:from-[#030712]/95 dark:via-[#06101f]/60 sm:w-40" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white/95 via-white/54 to-transparent dark:from-[#030712]/95 dark:via-[#06101f]/60 sm:w-40" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-white via-white/70 to-transparent dark:from-[#030712] dark:via-[#06101f]/72 sm:w-40" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-white via-white/70 to-transparent dark:from-[#030712] dark:via-[#06101f]/72 sm:w-40" />
           <MotionRow items={firstRow} />
           <MotionRow items={secondRow} reverse />
         </div>

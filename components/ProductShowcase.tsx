@@ -98,7 +98,7 @@ export const ProductShowcase: React.FC = () => {
                         <Badge
                           variant="primary"
                           size="sm"
-                          className="dark:border-blue-300/30 dark:bg-blue-400/15 dark:text-blue-100 dark:shadow-[0_0_24px_rgba(59,130,246,0.18)]"
+                          className="border-blue-200 bg-blue-50 text-blue-800 shadow-sm dark:border-blue-300/30 dark:bg-blue-400/15 dark:text-blue-100 dark:shadow-[0_0_24px_rgba(59,130,246,0.18)]"
                         >
                           Populaire
                         </Badge>
