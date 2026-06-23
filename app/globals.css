@@ -158,28 +158,32 @@ body {
 
 @keyframes toolia-marquee-left {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 @keyframes toolia-marquee-right {
   from {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
   to {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 .toolia-marquee {
   animation: toolia-marquee-left 46s linear infinite;
+  contain: layout paint;
+  will-change: transform;
 }
 
 .toolia-marquee-reverse {
   animation: toolia-marquee-right 52s linear infinite;
+  contain: layout paint;
+  will-change: transform;
 }
 
 @keyframes toolia-plan-glow {
@@ -201,6 +205,7 @@ body {
   .toolia-plan-glow {
     animation: none;
     transform: translateX(0);
+    will-change: auto;
   }
 
   .toolia-marquee,

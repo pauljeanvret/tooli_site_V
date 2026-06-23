@@ -33,9 +33,9 @@ export const HowItWorks: React.FC = () => {
           <div className="relative overflow-hidden rounded-[26px] border border-toolia-border-subtle bg-toolia-card p-3 shadow-soft dark:border-white/10 sm:p-5 md:rounded-[34px] md:p-7">
             <div className="absolute inset-x-10 top-[5.9rem] hidden h-px bg-toolia-border-subtle dark:bg-white/14 md:block" />
             <motion.div
-              className="absolute left-10 top-[5.9rem] hidden h-px bg-toolia-primary dark:bg-sky-300/70 md:block"
-              initial={{ width: 0 }}
-              whileInView={{ width: 'calc(100% - 5rem)' }}
+              className="absolute left-10 top-[5.9rem] hidden h-px w-[calc(100%-5rem)] origin-left bg-toolia-primary dark:bg-sky-300/70 md:block"
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
               viewport={{ once: true, amount: 0.45 }}
               transition={{ duration: 1.15, ease: 'easeInOut' }}
             />

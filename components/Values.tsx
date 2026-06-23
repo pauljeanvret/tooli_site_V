@@ -12,8 +12,36 @@ const calmSignals = [
 
 export const Values: React.FC = () => {
   const sectionRef = React.useRef<HTMLElement>(null)
+  const videoRef = React.useRef<HTMLVideoElement>(null)
   const reduceMotion = useReducedMotion()
   const [canUseScrollExpansion, setCanUseScrollExpansion] = React.useState(false)
+
+  React.useEffect(() => {
+    const video = videoRef.current
+    if (!video || typeof IntersectionObserver === 'undefined') return
+
+    if (reduceMotion) {
+      video.pause()
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          void video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      },
+      { threshold: 0.12 },
+    )
+
+    observer.observe(video)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [reduceMotion])
 
   React.useEffect(() => {
     const desktopMedia = window.matchMedia('(min-width: 768px)')
@@ -52,8 +80,7 @@ export const Values: React.FC = () => {
     offset: ['start end', 'end start'],
   })
 
-  const desktopPanelWidth = useTransform(scrollYProgress, [0.1, 0.68], ['min(84vw, 72rem)', '100vw'])
-  const desktopPanelHeight = useTransform(scrollYProgress, [0.1, 0.68], ['clamp(28rem, 48vh, 42rem)', '100vh'])
+  const desktopPanelScale = useTransform(scrollYProgress, [0.1, 0.68], [0.74, 1])
   const desktopPanelRadius = useTransform(scrollYProgress, [0.1, 0.68], ['2.35rem', '0rem'])
   const desktopPanelOpacity = useTransform(scrollYProgress, [0, 0.14], [0.92, 1])
   const desktopPanelY = useTransform(scrollYProgress, [0.1, 0.68], [26, 0])
@@ -77,22 +104,27 @@ export const Values: React.FC = () => {
         }
       >
         <motion.div
-          className="relative min-h-[560px] w-full overflow-hidden rounded-[28px] border border-white/55 bg-[#eef4f8] shadow-[0_34px_110px_rgba(15,23,42,0.15)] sm:min-h-[590px] sm:rounded-[42px] md:min-h-0 dark:border-white/12 dark:bg-[#06101f] dark:shadow-[0_36px_120px_rgba(0,0,0,0.42)]"
+          className={
+            animateDesktopExpansion
+              ? 'relative h-screen w-screen transform-gpu overflow-hidden rounded-[38px] border border-white/55 bg-[#eef4f8] shadow-[0_34px_110px_rgba(15,23,42,0.15)] will-change-transform [contain:layout_paint] dark:border-white/12 dark:bg-[#06101f] dark:shadow-[0_36px_120px_rgba(0,0,0,0.42)]'
+              : 'relative min-h-[560px] w-full overflow-hidden rounded-[28px] border border-white/55 bg-[#eef4f8] shadow-[0_34px_110px_rgba(15,23,42,0.15)] sm:min-h-[590px] sm:rounded-[42px] md:min-h-0 dark:border-white/12 dark:bg-[#06101f] dark:shadow-[0_36px_120px_rgba(0,0,0,0.42)]'
+          }
           style={
             animateDesktopExpansion
               ? {
-                  width: desktopPanelWidth,
-                  height: desktopPanelHeight,
+                  scale: desktopPanelScale,
                   y: desktopPanelY,
                   opacity: desktopPanelOpacity,
                   borderRadius: desktopPanelRadius,
+                  transformOrigin: 'center center',
                 }
               : undefined
           }
         >
           {/* Calm water video only. Keep it forward-only: no ping-pong/reverse loop. */}
           <video
-            className="absolute inset-0 h-full w-full object-cover brightness-[1.08] contrast-[1.02] saturate-[0.98] dark:brightness-[0.72] dark:contrast-[1.06] dark:saturate-[0.9] sm:brightness-[1.04] sm:saturate-[0.95] sm:dark:brightness-[0.64] sm:dark:contrast-[1.08] sm:dark:saturate-[0.84]"
+            ref={videoRef}
+            className="absolute inset-0 h-full w-full object-cover"
             autoPlay
             muted
             loop
@@ -110,7 +142,7 @@ export const Values: React.FC = () => {
 
           <div className="absolute inset-0 z-10 flex items-center justify-center px-5 py-14 text-center sm:px-10 sm:py-20 md:relative md:inset-auto md:h-full md:py-24">
             <div className="relative mx-auto w-[min(88vw,24rem)] sm:w-auto sm:max-w-5xl">
-              <div className="pointer-events-none absolute -inset-x-5 -inset-y-8 rounded-[2rem] bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.52),rgba(2,6,23,0.24)_46%,transparent_72%)] backdrop-blur-[1.5px] sm:-inset-x-8 sm:-inset-y-10 sm:bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.12)_46%,transparent_72%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.42),rgba(2,6,23,0.16)_48%,transparent_72%)]" />
+              <div className="pointer-events-none absolute -inset-x-5 -inset-y-8 rounded-[2rem] bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.52),rgba(2,6,23,0.24)_46%,transparent_72%)] sm:-inset-x-8 sm:-inset-y-10 sm:bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.34),rgba(255,255,255,0.12)_46%,transparent_72%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.42),rgba(2,6,23,0.16)_48%,transparent_72%)]" />
 
               <div className="relative">
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-100/95 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] sm:text-toolia-info sm:drop-shadow-none sm:dark:text-sky-200">

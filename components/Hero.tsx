@@ -23,7 +23,36 @@ const heroItem = {
 }
 
 export const Hero: React.FC = () => {
+  const videoRef = React.useRef<HTMLVideoElement>(null)
   const [primaryCta, setPrimaryCta] = React.useState(copy.hero.cta1)
+
+  React.useEffect(() => {
+    const video = videoRef.current
+    if (!video || typeof IntersectionObserver === 'undefined') return
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduceMotion) {
+      video.pause()
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          void video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      },
+      { threshold: 0.12 },
+    )
+
+    observer.observe(video)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   React.useEffect(() => {
     let active = true
@@ -48,6 +77,7 @@ export const Hero: React.FC = () => {
       {/* Place the hero poster at public/videos/hero-desk-poster.jpg */}
       {/* Optional: generate hero-desk-loop.mp4 for seamless ping-pong loop */}
       <video
+        ref={videoRef}
         className="hero-video absolute inset-0 h-full w-full object-cover object-[55%_center] sm:object-center"
         autoPlay
         muted

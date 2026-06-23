@@ -41,7 +41,7 @@ function MotionRow({ items, reverse = false }: { items: string[]; reverse?: bool
         {repeated.map((item, index) => (
           <span
             key={`${item}-${index}`}
-            className="inline-flex whitespace-nowrap rounded-full border border-slate-300/90 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur-lg dark:border-white/15 dark:bg-slate-900/[0.86] dark:text-white/[0.85]"
+            className="inline-flex whitespace-nowrap rounded-full border border-slate-300/90 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm dark:border-white/15 dark:bg-slate-900/[0.86] dark:text-white/[0.85]"
           >
             {item}
           </span>
@@ -56,7 +56,7 @@ export function AutomationMotionStrip({ className = '' }: { className?: string }
 
   return (
     <div className={cn('pointer-events-none relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-0', className)}>
-      <div className="relative border-y border-slate-200/90 bg-white/[0.82] py-3 shadow-[0_18px_58px_rgba(15,23,42,0.11)] backdrop-blur-xl dark:border-white/[0.12] dark:bg-slate-950/[0.74] dark:shadow-[0_18px_72px_rgba(0,0,0,0.32)] sm:py-3">
+      <div className="relative border-y border-slate-200/90 bg-white/[0.9] py-3 shadow-[0_18px_58px_rgba(15,23,42,0.11)] dark:border-white/[0.12] dark:bg-slate-950/[0.82] dark:shadow-[0_18px_72px_rgba(0,0,0,0.32)] sm:py-3">
         <div className="flex flex-wrap justify-center gap-2 px-4 sm:hidden">
           {mobileProofChips.map((item) => (
             <span
