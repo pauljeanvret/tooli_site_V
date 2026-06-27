@@ -17,6 +17,20 @@ export type PlanLimits = {
   telegramAdvanced: boolean
 }
 
+export const PLAN_GMAIL_INTERVAL_MINUTES: Record<TooliaPlanId, number> = {
+  starter: 30,
+  pro: 10,
+  premium: 5,
+}
+
+export function getPlanGmailIntervalMinutes(plan: string | null | undefined) {
+  return PLAN_GMAIL_INTERVAL_MINUTES[normalizePlanId(plan)]
+}
+
+export function getPlanAutomationFrequencyLabel(plan: string | null | undefined) {
+  return `Vérification toutes les ${getPlanGmailIntervalMinutes(plan)} min`
+}
+
 export const STARTER_LIMITS: PlanLimits = {
   id: 'starter',
   name: 'Starter',
@@ -27,7 +41,7 @@ export const STARTER_LIMITS: PlanLimits = {
   aiDraftsMonthly: 100,
   telegramAlertsMonthly: 0,
   styleAnalysesMonthly: 1,
-  automationFrequencyLabel: '30 minutes minimum',
+  automationFrequencyLabel: getPlanAutomationFrequencyLabel('starter'),
   telegramCategoryAlerts: false,
   telegramAdvanced: false,
 }
@@ -42,7 +56,7 @@ export const PRO_LIMITS: PlanLimits = {
   aiDraftsMonthly: 400,
   telegramAlertsMonthly: 500,
   styleAnalysesMonthly: 2,
-  automationFrequencyLabel: '10 minutes minimum',
+  automationFrequencyLabel: getPlanAutomationFrequencyLabel('pro'),
   telegramCategoryAlerts: true,
   telegramAdvanced: false,
 }
@@ -57,7 +71,7 @@ export const PREMIUM_LIMITS: PlanLimits = {
   aiDraftsMonthly: 1200,
   telegramAlertsMonthly: 2000,
   styleAnalysesMonthly: 4,
-  automationFrequencyLabel: '5 minutes minimum',
+  automationFrequencyLabel: getPlanAutomationFrequencyLabel('premium'),
   telegramCategoryAlerts: true,
   telegramAdvanced: true,
 }

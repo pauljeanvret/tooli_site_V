@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { flushSync } from 'react-dom'
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import {
   applyTooliaTheme,
@@ -17,6 +18,20 @@ const themeOptions: Array<{ value: TooliaTheme; label: string; icon: LucideIcon 
   { value: 'system', label: 'Système', icon: Monitor },
 ]
 
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (callback: () => void) => {
+    ready: Promise<void>
+    finished: Promise<void>
+  }
+}
+
+const themeTransitionDuration = 640
+const themeTransitionEasing = 'cubic-bezier(0.22, 1, 0.36, 1)'
+
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function ThemeToggle({ compact = false, className = '' }: { compact?: boolean; className?: string }) {
   const [theme, setTheme] = React.useState<TooliaTheme>('light')
 
@@ -31,9 +46,60 @@ export function ThemeToggle({ compact = false, className = '' }: { compact?: boo
     })
   }, [])
 
-  const updateTheme = (nextTheme: TooliaTheme) => {
-    setTheme(nextTheme)
+  const commitTheme = React.useCallback((nextTheme: TooliaTheme) => {
+    flushSync(() => setTheme(nextTheme))
     setStoredTooliaTheme(nextTheme)
+  }, [])
+
+  const updateTheme = (nextTheme: TooliaTheme, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (nextTheme === theme) return
+
+    const transitionDocument = document as ViewTransitionDocument
+    if (!transitionDocument.startViewTransition || prefersReducedMotion()) {
+      commitTheme(nextTheme)
+      return
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const originX = rect.left + rect.width / 2
+    const originY = rect.top + rect.height / 2
+    const endRadius = Math.hypot(
+      Math.max(originX, window.innerWidth - originX),
+      Math.max(originY, window.innerHeight - originY),
+    )
+
+    document.documentElement.classList.add('toolia-theme-transitioning')
+
+    const transition = transitionDocument.startViewTransition(() => {
+      commitTheme(nextTheme)
+    })
+
+    transition.ready
+      .then(() => {
+        const animationOptions: KeyframeAnimationOptions & { pseudoElement?: string } = {
+          duration: themeTransitionDuration,
+          easing: themeTransitionEasing,
+          fill: 'both',
+          pseudoElement: '::view-transition-new(root)',
+        }
+
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${originX}px ${originY}px)`,
+              `circle(${endRadius}px at ${originX}px ${originY}px)`,
+            ],
+          },
+          animationOptions,
+        )
+      })
+      .catch(() => undefined)
+
+    transition.finished
+      .catch(() => undefined)
+      .finally(() => {
+        document.documentElement.classList.remove('toolia-theme-transitioning')
+      })
   }
 
   return (
@@ -47,7 +113,7 @@ export function ThemeToggle({ compact = false, className = '' }: { compact?: boo
             <button
               key={option.value}
               type="button"
-              onClick={() => updateTheme(option.value)}
+              onClick={(event) => updateTheme(option.value, event)}
               className={cn(
                 'inline-flex min-w-0 items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition focus-visible:ring-2 focus-visible:ring-toolia-info/35',
                 active

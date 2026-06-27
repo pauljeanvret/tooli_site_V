@@ -1,3 +1,5 @@
+import { getPlanLimits } from '@/lib/saas/plan-config'
+
 export type DiagnosticPlan = 'starter' | 'pro' | 'premium'
 
 export type DiagnosticStatus = 'new' | 'to_contact' | 'contacted' | 'converted' | 'not_interested'
@@ -31,6 +33,10 @@ export type DiagnosticResult = {
   cost_lost_per_year: number
   recommended_plan: DiagnosticPlan
   recommendation_text: string
+  recommended_plan_monthly_price: number
+  roi_title: string
+  roi_text: string
+  roi_warning: boolean
 }
 
 export const diagnosticStatusOptions: Array<{ value: DiagnosticStatus; label: string }> = [
@@ -144,7 +150,7 @@ function getRecommendation(input: {
   if (premium) {
     return {
       plan: 'premium',
-      text: "Premium est recommandé si votre boîte mail impacte directement votre activité.",
+      text: 'Premium est le plan le plus adapté techniquement si votre boîte mail demande une automatisation complète : priorités, labels, brouillons et alertes.',
     }
   }
 
@@ -158,13 +164,45 @@ function getRecommendation(input: {
   if (pro) {
     return {
       plan: 'pro',
-      text: 'Pro est le meilleur équilibre pour gagner du temps chaque semaine.',
+      text: 'Pro est le meilleur équilibre technique pour un flux régulier : plus de labels, plus de brouillons et des alertes utiles.',
     }
   }
 
   return {
     plan: 'starter',
-    text: 'Starter suffit pour reprendre le contrôle sans automatisation lourde.',
+    text: 'Starter suffit techniquement pour reprendre le contrôle avec une automatisation simple, sans besoin d’alertes ou de règles avancées.',
+  }
+}
+
+function getRoiAnalysis(input: {
+  plan: DiagnosticPlan
+  costLostPerMonth: number
+  monthlyIncome: number
+}) {
+  const planPrice = getPlanLimits(input.plan).monthlyPrice
+  const loss = Math.round(input.costLostPerMonth)
+  const lossLabel = formatEuro(loss)
+  const planLabel = planLabels[input.plan]
+  const lowIncome = input.monthlyIncome < 1000
+
+  if (planPrice > loss) {
+    const incomeContext = lowIncome
+      ? ' Avec votre niveau de revenu déclaré, cette nuance est importante :'
+      : ''
+
+    return {
+      price: planPrice,
+      title: 'À savoir sur la rentabilité',
+      warning: true,
+      text: `${planLabel} est adapté techniquement à votre volume et à vos besoins d’automatisation, mais votre perte financière estimée reste d’environ ${lossLabel}/mois, donc inférieure au prix du plan.${incomeContext} l’intérêt est surtout le confort, la charge mentale, la régularité des réponses et la réduction des oublis, plus qu’un retour financier immédiat.`,
+    }
+  }
+
+  return {
+    price: planPrice,
+    title: 'Rentabilité estimée',
+    warning: false,
+    text: `Votre perte financière estimée est d’environ ${lossLabel}/mois. Le plan ${planLabel} reste cohérent financièrement si Toolia vous aide réellement à récupérer une partie de ce temps et à éviter les retards importants.`,
   }
 }
 
@@ -175,11 +213,17 @@ export function calculateDiagnostic(input: DiagnosticFormValues): DiagnosticResu
   const hourlyValue = monthlyIncome / WORKING_HOURS_PER_MONTH
   const hoursLostPerMonth = (inboxMinutesPerDay / 60) * WORKING_DAYS_PER_MONTH
   const costLostPerMonth = hoursLostPerMonth * hourlyValue
+  const roundedCostLostPerMonth = Math.round(costLostPerMonth)
   const recommendation = getRecommendation({
     emailsPerDay,
     inboxMinutesPerDay,
     mainPain: input.main_pain,
     organizationLevel: input.organization_level,
+  })
+  const roi = getRoiAnalysis({
+    plan: recommendation.plan,
+    costLostPerMonth: roundedCostLostPerMonth,
+    monthlyIncome,
   })
 
   return {
@@ -188,10 +232,14 @@ export function calculateDiagnostic(input: DiagnosticFormValues): DiagnosticResu
     hourly_value: roundOne(hourlyValue),
     hours_lost_per_month: roundOne(hoursLostPerMonth),
     hours_lost_per_year: roundOne(hoursLostPerMonth * 12),
-    cost_lost_per_month: Math.round(costLostPerMonth),
+    cost_lost_per_month: roundedCostLostPerMonth,
     cost_lost_per_year: Math.round(costLostPerMonth * 12),
     recommended_plan: recommendation.plan,
     recommendation_text: recommendation.text,
+    recommended_plan_monthly_price: roi.price,
+    roi_title: roi.title,
+    roi_text: roi.text,
+    roi_warning: roi.warning,
   }
 }
 

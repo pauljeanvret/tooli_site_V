@@ -111,7 +111,7 @@ export const ContactForm: React.FC = () => {
   }
 
   return (
-    <Section id="contact">
+    <Section id="contact" className="dark:bg-[#101827]">
       <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[0.86fr_1.14fr]">
         <ScrollReveal>
           <div className="flex max-w-xl flex-col gap-8">
@@ -145,7 +145,7 @@ export const ContactForm: React.FC = () => {
         </ScrollReveal>
 
         <ScrollReveal>
-          <Card className="flex flex-col gap-6">
+          <Card className="flex flex-col gap-6 dark:border-white/10 dark:bg-slate-900/76 dark:shadow-[0_28px_90px_rgba(0,0,0,0.3)]">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <Input

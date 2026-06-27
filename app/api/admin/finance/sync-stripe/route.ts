@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { z } from 'zod'
 
-import { getStripeSecretKey } from '@/lib/saas/stripe-plans'
+import { isAdminEmail } from '@/lib/admin'
+import { getPlanFromStripePriceId, getStripeSecretKey } from '@/lib/saas/stripe-plans'
 import {
   getInvoicePaymentRefs,
   upsertStripeRevenueFromChargeRefund,
   upsertStripeRevenueFromCheckoutSession,
   upsertStripeRevenueFromInvoice,
 } from '@/lib/saas/stripe-revenue-store'
+import {
+  getStripeSubscriptionCurrentPeriodEnd,
+  normalizeSubscriptionStatus,
+  upsertStripeSubscription,
+} from '@/lib/saas/subscription-store'
+import { normalizePlanId } from '@/lib/saas/plan-config'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { requireAuthenticatedRouteUser } from '@/lib/supabase/route-auth'
 
@@ -21,19 +28,6 @@ const requestSchema = z
     maxCustomers: z.number().int().min(1).max(500).optional(),
   })
   .strict()
-
-function getAdminEmails() {
-  return (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-function isAdminEmail(email: string | null | undefined) {
-  if (!email) return false
-  const adminEmails = getAdminEmails()
-  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase())
-}
 
 async function requireAdmin(request: NextRequest) {
   const auth = await requireAuthenticatedRouteUser(request)
@@ -105,7 +99,29 @@ function cents(value: unknown) {
   return Math.max(0, integerFrom(value))
 }
 
-export async function POST(request: NextRequest) {
+function stringFrom(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+}
+
+function getStripeId(value: unknown) {
+  if (typeof value === 'string') return value
+  return stringFrom(asRecord(value).id)
+}
+
+function getPlanFromSubscription(subscription: Stripe.Subscription, fallbackPlan?: string | null) {
+  for (const item of subscription.items.data) {
+    const plan = getPlanFromStripePriceId(item.price?.id)
+    if (plan) return plan
+  }
+
+  return fallbackPlan ? normalizePlanId(fallbackPlan) : 'starter'
+}
+
+async function syncStripeFinance(request: NextRequest) {
   const adminAuth = await requireAdmin(request)
   if (adminAuth.response) return adminAuth.response
 
@@ -166,7 +182,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('subscriptions')
-    .select('stripe_customer_id')
+    .select('id,user_id,plan_id,status,stripe_customer_id,stripe_subscription_id,current_period_end')
     .order('created_at', { ascending: false })
     .limit(maxCustomers)
 
@@ -185,9 +201,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       monthKey,
+      adminAuthOk: true,
       message: 'Aucun client Stripe connu dans les abonnements. Aucun revenu exact ne peut être synchronisé pour le moment.',
       subscriptionsScanned: subscriptionRows.length,
       subscriptionsMissingStripeCustomerId,
+      subscriptionsWithStripeCustomerId: 0,
       customersChecked: 0,
       invoicesFetched: 0,
       checkoutSessionsFetched: 0,
@@ -196,6 +214,17 @@ export async function POST(request: NextRequest) {
       fullyRefundedPaymentsDetected: 0,
       zeroPaidInvoicesDetected: 0,
       rowsUpdatedDueToRefunds: 0,
+      subscriptionsChecked: 0,
+      subscriptionsUpdated: 0,
+      subscriptionsActive: 0,
+      subscriptionsTrialing: 0,
+      subscriptionsCanceled: 0,
+      subscriptionsPaused: 0,
+      subscriptionsPastDue: 0,
+      subscriptionsIncomplete: 0,
+      subscriptionsUnpaid: 0,
+      subscriptionsUnknown: 0,
+      subscriptionsFailed: 0,
       revenueEventsSaved: 0,
     })
   }
@@ -209,6 +238,73 @@ export async function POST(request: NextRequest) {
   let zeroPaidInvoicesDetected = 0
   let rowsUpdatedDueToRefunds = 0
   let revenueEventsSaved = 0
+  let subscriptionsChecked = 0
+  let subscriptionsUpdated = 0
+  let subscriptionsActive = 0
+  let subscriptionsTrialing = 0
+  let subscriptionsCanceled = 0
+  let subscriptionsPaused = 0
+  let subscriptionsPastDue = 0
+  let subscriptionsIncomplete = 0
+  let subscriptionsUnpaid = 0
+  let subscriptionsUnknown = 0
+  let subscriptionsFailed = 0
+
+  for (const row of subscriptionRows) {
+    const stripeSubscriptionId = String(row.stripe_subscription_id || '').trim()
+    const userId = String(row.user_id || '').trim()
+    if (!stripeSubscriptionId || !userId) continue
+
+    subscriptionsChecked += 1
+    try {
+      const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, {
+        expand: ['items.data.price'],
+      })
+      const stripeStatus = normalizeSubscriptionStatus(stringFrom(asRecord(stripeSubscription).status))
+      const stripePlan = getPlanFromSubscription(stripeSubscription, row.plan_id)
+      const stripeCustomerId = getStripeId(stripeSubscription.customer) || row.stripe_customer_id
+      const currentPeriodEnd = getStripeSubscriptionCurrentPeriodEnd(stripeSubscription) || row.current_period_end || null
+
+      if (stripeStatus === 'active') subscriptionsActive += 1
+      else if (stripeStatus === 'trialing') subscriptionsTrialing += 1
+      else if (stripeStatus === 'canceled') subscriptionsCanceled += 1
+      else if (stripeStatus === 'paused') subscriptionsPaused += 1
+      else if (stripeStatus === 'past_due') subscriptionsPastDue += 1
+      else if (stripeStatus === 'incomplete') subscriptionsIncomplete += 1
+      else if (stripeStatus === 'unpaid') subscriptionsUnpaid += 1
+      else subscriptionsUnknown += 1
+
+      const changed =
+        stripeStatus !== row.status ||
+        stripePlan !== normalizePlanId(row.plan_id) ||
+        currentPeriodEnd !== (row.current_period_end || null) ||
+        stripeCustomerId !== row.stripe_customer_id
+
+      if (stripeCustomerId) {
+        const result = await upsertStripeSubscription({
+          userId,
+          plan: stripePlan,
+          status: stripeStatus,
+          stripeCustomerId,
+          stripeSubscriptionId: stripeSubscription.id,
+          currentPeriodEnd,
+        })
+
+        if (result.ok && changed) {
+          subscriptionsUpdated += 1
+        } else if (!result.ok) {
+          subscriptionsFailed += 1
+        }
+      }
+    } catch (error) {
+      subscriptionsUnknown += 1
+      subscriptionsFailed += 1
+      console.warn('[admin/finance/sync-stripe] subscription status sync failed', {
+        hasStripeSubscriptionId: Boolean(stripeSubscriptionId),
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
 
   for (const customer of customerIds) {
     const invoices = await stripe.invoices.list({
@@ -265,9 +361,9 @@ export async function POST(request: NextRequest) {
       customer,
       limit: 100,
       created: {
-        gte: startUnix,
         lt: endUnix,
       },
+      expand: ['data.refunds'],
     })
 
     for (const charge of charges.data) {
@@ -275,7 +371,9 @@ export async function POST(request: NextRequest) {
       const refundedCents = cents(charge.amount_refunded)
       if (refundedCents <= 0) continue
 
-      refundsFound += 1
+      const chargeRefunds = asRecord(charge).refunds
+      const refundItems = Array.isArray(asRecord(chargeRefunds).data) ? (asRecord(chargeRefunds).data as unknown[]) : []
+      refundsFound += Math.max(1, refundItems.length)
       if (cents(charge.amount) > 0 && refundedCents >= cents(charge.amount)) {
         fullyRefundedPaymentsDetected += 1
       }
@@ -296,12 +394,14 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     monthKey,
+    adminAuthOk: true,
     message:
       revenueEventsSaved > 0
         ? 'Synchronisation Stripe terminée.'
         : 'Synchronisation Stripe terminée : aucun paiement Stripe trouvé pour ce mois.',
     subscriptionsScanned: subscriptionRows.length,
     subscriptionsMissingStripeCustomerId,
+    subscriptionsWithStripeCustomerId: customerIds.length,
     customersChecked: customerIds.length,
     invoicesFetched,
     checkoutSessionsFetched,
@@ -310,6 +410,36 @@ export async function POST(request: NextRequest) {
     fullyRefundedPaymentsDetected,
     zeroPaidInvoicesDetected,
     rowsUpdatedDueToRefunds,
+    subscriptionsChecked,
+    subscriptionsUpdated,
+    subscriptionsActive,
+    subscriptionsTrialing,
+    subscriptionsCanceled,
+    subscriptionsPaused,
+    subscriptionsPastDue,
+    subscriptionsIncomplete,
+    subscriptionsUnpaid,
+    subscriptionsUnknown,
+    subscriptionsFailed,
     revenueEventsSaved,
   })
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    return await syncStripeFinance(request)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[admin/finance/sync-stripe] sync failed', {
+      message,
+    })
+
+    return NextResponse.json(
+      {
+        ok: false,
+        message: `Synchronisation Stripe impossible : ${message}`,
+      },
+      { status: 500 },
+    )
+  }
 }

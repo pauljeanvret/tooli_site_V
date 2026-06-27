@@ -11,6 +11,7 @@ import {
 type ProfileGenerationResult = {
   profile: AutomationProfile
   mode: 'mock' | 'openai' | 'openrouter'
+  model?: string
   validation: 'passed'
   fallbackReason?: string
 }
@@ -285,6 +286,7 @@ export async function generateAutomationProfile(rawAnswers: unknown): Promise<Pr
     return {
       profile: await generateWithLLM(answers, config),
       mode: config.provider,
+      model: config.model,
       validation: 'passed',
     }
   } catch (error) {

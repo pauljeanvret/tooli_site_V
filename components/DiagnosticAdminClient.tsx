@@ -4,6 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { RefreshCw, Save, ShieldAlert } from 'lucide-react'
 
+import { AdminNav } from '@/components/AdminNav'
 import { diagnosticStatusOptions, formatEuro, planLabels, type DiagnosticPlan, type DiagnosticStatus } from '@/lib/diagnostic'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
@@ -169,6 +170,7 @@ export function DiagnosticAdminClient() {
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-white/60">
               Suivi des diagnostics publics soumis par les visiteurs. Cette page est réservée aux emails listés dans ADMIN_EMAILS.
             </p>
+            <AdminNav active="diagnostics" />
           </div>
           <button
             type="button"

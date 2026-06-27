@@ -23,7 +23,7 @@ const tileClasses = [
 
 export const Stats: React.FC = () => {
   return (
-    <Section id="stats" className="bg-toolia-bg-secondary/65 max-md:py-10">
+    <Section id="stats" className="bg-toolia-bg-secondary/65 max-md:py-10 dark:bg-[#101827]">
       <div className="mx-auto flex max-w-6xl flex-col gap-7 md:gap-10">
         <ScrollReveal>
           <h2 className="font-heading mx-auto max-w-4xl text-center text-[2rem] font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
@@ -37,13 +37,13 @@ export const Stats: React.FC = () => {
             return (
               <ScrollReveal key={stat.value} delay={idx * 0.08} className={tileClasses[idx]}>
                 <motion.div
-                  className={`group relative flex h-full min-h-[124px] overflow-hidden rounded-[24px] border border-toolia-border-subtle bg-toolia-card p-4 shadow-soft md:min-h-[150px] md:rounded-[30px] md:p-6 ${idx === 0 ? 'lg:min-h-[318px] lg:p-8' : ''}`}
+                  className={`group relative flex h-full min-h-[124px] overflow-hidden rounded-[24px] border border-toolia-border-subtle bg-toolia-card p-4 shadow-soft dark:border-white/10 dark:bg-slate-900/72 dark:shadow-[0_24px_80px_rgba(0,0,0,0.26)] md:min-h-[150px] md:rounded-[30px] md:p-6 ${idx === 0 ? 'lg:min-h-[318px] lg:p-8' : ''}`}
                   whileHover={{ y: -3 }}
                   transition={{ duration: 0.2 }}
                 >
                   <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-toolia-primary/7 transition group-hover:scale-125" />
                   <div className="relative z-10 flex w-full flex-col justify-between gap-5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-toolia-bg-secondary text-toolia-primary md:h-12 md:w-12">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-toolia-bg-secondary text-toolia-primary dark:bg-slate-950/55 dark:text-sky-200 md:h-12 md:w-12">
                       <Icon size={idx === 0 ? 30 : 24} />
                     </div>
                     <div>

@@ -17,7 +17,7 @@ const rules = ['Clients', 'Urgences', 'Factures', 'Prospects']
 
 export function ProductDemoVideo() {
   return (
-    <Section id="demo" className="bg-toolia-bg-secondary/70 max-md:py-10">
+    <Section id="demo" className="bg-toolia-bg-secondary/70 pb-12 pt-7 sm:pb-14 sm:pt-8 md:pb-16 md:pt-10 lg:pb-20 lg:pt-12 dark:bg-[#101827]">
       <div className="grid gap-7 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:gap-10">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-toolia-info">Espace Toolia</p>
@@ -29,26 +29,26 @@ export function ProductDemoVideo() {
           </p>
           <div className="mt-5 md:mt-6">
             <Button
-              variant="secondary"
+              variant="primary"
               size="md"
-              className="w-full max-w-xs md:w-auto"
+              className="w-full max-w-xs bg-[#172554] shadow-[0_18px_48px_rgba(29,78,216,0.26)] ring-1 ring-blue-100/70 hover:bg-[#1d4ed8] dark:bg-blue-500 dark:hover:bg-blue-400 md:w-auto"
               onClick={() => {
                 trackEvent('cta_click', {
                   cta_location: 'dashboard',
-                  cta_label: 'Préparer mon espace Toolia',
+                  cta_label: 'Diagnostiquer ma boîte mail',
                 })
-                window.location.href = '/signup'
+                window.location.href = '/diagnostic'
               }}
             >
-              Préparer mon espace Toolia
+              Diagnostiquer ma boîte mail
             </Button>
           </div>
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-4 rounded-[40px] bg-toolia-info/10 blur-3xl" />
-          <div className="relative overflow-hidden rounded-[26px] border border-toolia-border-subtle bg-toolia-card p-2 shadow-soft md:rounded-[32px] md:p-3">
-            <div className="rounded-[22px] border border-toolia-border-subtle bg-toolia-bg-main p-4 md:rounded-[26px] md:p-6">
+          <div className="absolute -inset-4 rounded-[40px] bg-toolia-info/10 blur-3xl dark:bg-blue-400/10" />
+          <div className="relative overflow-hidden rounded-[26px] border border-toolia-border-subtle bg-toolia-card p-2 shadow-soft dark:border-white/10 dark:bg-slate-900/82 md:rounded-[32px] md:p-3">
+            <div className="rounded-[22px] border border-toolia-border-subtle bg-toolia-bg-main p-4 dark:border-white/10 dark:bg-slate-950/54 md:rounded-[26px] md:p-6">
               <div className="mb-4 flex flex-col gap-3 border-b border-toolia-border-subtle pb-4 sm:flex-row sm:items-center sm:justify-between md:mb-5 md:pb-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-toolia-text-muted">Dashboard</p>

@@ -18,6 +18,10 @@ import { getPersistedSaasState, getWritingStyleProfile } from '@/lib/saas/supaba
 import { checkQuota, getMonthlyUsageSnapshot, recordUsage } from '@/lib/saas/plan-limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { requirePaidSaasRouteAccess } from '@/lib/saas/route-access'
+import { estimateTokensFromChars, recordAiCostUsage } from '@/lib/ai-costs'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const requestSchema = z
   .object({
@@ -55,6 +59,26 @@ type ClassificationCard = {
 
 function jsonError(status: number, step: string, message: string) {
   return NextResponse.json({ ok: false, step, message }, { status })
+}
+
+function safeErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function safeErrorCode(error: unknown) {
+  const candidate = error as { code?: unknown; status?: unknown; response?: { status?: unknown } }
+  return candidate?.code || candidate?.status || candidate?.response?.status || null
+}
+
+function cleanAnalyzeFailureMessage(step: string, error: unknown) {
+  const message = safeErrorMessage(error).toLowerCase()
+  if (message.includes('gmail n') || message.includes('connexion gmail')) return 'Gmail non connectÃ©.'
+  if (message.includes('insufficient') || message.includes('permission') || message.includes('scope')) {
+    return 'Autorisation Gmail Ã  mettre Ã  jour.'
+  }
+  if (step.includes('ai') || step.includes('classification')) return 'Analyse IA impossible pour le moment.'
+  if (step.includes('gmail')) return 'Erreur Gmail temporaire. RÃ©essayez dans quelques instants.'
+  return 'Analyse impossible pour le moment.'
 }
 
 function normalizeName(value: string) {
@@ -220,6 +244,57 @@ async function logClassification(input: {
   await supabase.from('email_processing_logs').insert(payload)
 }
 
+async function safeLogClassification(input: Parameters<typeof logClassification>[0]) {
+  try {
+    await logClassification(input)
+  } catch (error) {
+    console.warn('[gmail/classification/analyze-recent] classification log failed', {
+      userId: input.userId,
+      messageId: input.result.messageId,
+      step: 'log_classification',
+      code: safeErrorCode(error),
+      message: safeErrorMessage(error),
+    })
+  }
+}
+
+async function safeRecordUsage(
+  userId: string,
+  eventType: Parameters<typeof recordUsage>[1],
+  amount: number,
+  metadata: Parameters<typeof recordUsage>[3],
+  step: string,
+) {
+  try {
+    return await recordUsage(userId, eventType, amount, metadata)
+  } catch (error) {
+    console.warn('[gmail/classification/analyze-recent] usage logging failed', {
+      userId,
+      eventType,
+      step,
+      code: safeErrorCode(error),
+      message: safeErrorMessage(error),
+      hasMessageId: Boolean(metadata?.relatedGmailMessageId),
+      hasThreadId: Boolean(metadata?.relatedThreadId),
+    })
+    return null
+  }
+}
+
+async function safeGetMonthlyUsageSnapshot(userId: string) {
+  try {
+    return await getMonthlyUsageSnapshot(userId)
+  } catch (error) {
+    console.warn('[gmail/classification/analyze-recent] usage snapshot failed', {
+      userId,
+      step: 'usage_snapshot',
+      code: safeErrorCode(error),
+      message: safeErrorMessage(error),
+    })
+    return null
+  }
+}
+
 function buildLabelMap(labels: Awaited<ReturnType<typeof ensureRealGmailLabels>>) {
   const map = new Map<string, string>()
   for (const label of [...labels.created, ...labels.existing, ...labels.updatedColors]) {
@@ -307,19 +382,24 @@ export async function POST(request: NextRequest) {
   let needsReview = 0
   let skipped = 0
   let quotaNotice = ''
+  let currentStep = 'init'
 
   try {
+    currentStep = 'parse_request'
     const requestBody = requestSchema.parse(await request.json().catch(() => ({})))
+    currentStep = 'load_profile'
     const persistedState = await getPersistedSaasState(user.id)
     if (!persistedState?.profile) {
       return jsonError(400, 'profile', 'Aucune configuration Toolia active trouvée.')
     }
 
+    currentStep = 'gmail_oauth'
     const { oauth2Client, connection } = await getOAuthClientForUser(user.id)
     if (!hasGmailModifyScope(connection)) {
       return jsonError(403, 'gmail_scope', 'Autorisation Gmail à mettre à jour.')
     }
 
+    currentStep = 'quota_check'
     const analysisQuota = await checkQuota(user.id, 'email_analysis', requestBody.messageId ? 1 : requestBody.limit)
     if (!analysisQuota.partiallyAllowed) {
       return NextResponse.json(
@@ -345,13 +425,16 @@ export async function POST(request: NextRequest) {
       actions: enabledActions(category.actions),
     }))
 
+    currentStep = 'gmail_labels'
     const labelResult = await ensureRealGmailLabels(user.id)
     const labelMap = buildLabelMap(labelResult)
+    currentStep = 'writing_style'
     const writingStyleProfile = await getWritingStyleProfile(user.id)
     const automationProfileId = await getActiveProfileId(user.id)
     const processedIds = requestBody.includeAlreadyAnalyzed ? new Set<string>() : await getAlreadyProcessedMessageIds(user.id)
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client })
 
+    currentStep = 'gmail_list_messages'
     const messageRefs = requestBody.messageId
       ? [{ id: requestBody.messageId }]
       : (
@@ -372,6 +455,7 @@ export async function POST(request: NextRequest) {
       if (results.length >= effectiveLimit) break
       if (!messageRef.id) continue
 
+      currentStep = 'gmail_get_message'
       const messageResponse = await gmail.users.messages.get({
         userId: 'me',
         id: messageRef.id,
@@ -380,6 +464,7 @@ export async function POST(request: NextRequest) {
       const message = messageResponse.data
       const sender = getGmailHeader(message, 'From')
       const subject = getGmailHeader(message, 'Subject') || '(Sans objet)'
+      currentStep = 'existing_log'
       const existingLog = await getExistingLog(user.id, message.id || messageRef.id)
 
       if (processedIds.has(messageRef.id)) {
@@ -410,7 +495,7 @@ export async function POST(request: NextRequest) {
         })
         results.push(skippedCard)
         skipped += 1
-        await logClassification({
+        await safeLogClassification({
           userId: user.id,
           automationProfileId,
           result: skippedCard,
@@ -421,6 +506,7 @@ export async function POST(request: NextRequest) {
 
       let threadContext: ReturnType<typeof buildThreadContextForAI> | null = null
       if (message.threadId) {
+        currentStep = 'gmail_thread'
         const threadResponse = await gmail.users.threads.get({
           userId: 'me',
           id: message.threadId,
@@ -429,6 +515,7 @@ export async function POST(request: NextRequest) {
         threadContext = buildThreadContextForAI(threadResponse.data)
       }
 
+      currentStep = 'ai_classification'
       const classification = await classifyIncomingEmail({
         profile: persistedState.profile,
         writingStyleProfile,
@@ -440,11 +527,42 @@ export async function POST(request: NextRequest) {
         },
         threadContext,
       })
-      await recordUsage(user.id, 'email_analysis', 1, {
+      await recordAiCostUsage({
+        userId: user.id,
+        customerId: user.id,
+        stripeCustomerId: access.subscriptionAccess.subscription?.stripe_customer_id || null,
+        plan: access.subscriptionAccess.planId,
+        source: 'classification',
+        actionType: 'email_classification',
+        provider: classification.provider,
+        model: classification.model,
+        promptTokens: estimateTokensFromChars(body.length + (message.snippet || '').length + 2200),
+        completionTokens: estimateTokensFromChars(JSON.stringify(classification.result).length),
+        gmailMessageCount: 1,
+        relatedGmailMessageId: message.id || messageRef.id,
+        relatedThreadId: message.threadId || null,
+        metadata: {
+          route: 'gmail_classification_analyze_recent',
+          manual: true,
+          thread_context_used: Boolean(threadContext?.messageCount),
+          should_apply_label: classification.result.shouldApplyLabel,
+          should_create_draft: classification.result.shouldCreateDraft,
+        },
+        success: true,
+      }).catch((costError) => {
+        console.warn('[gmail/classification/analyze-recent] AI cost logging failed', {
+          step: 'ai_cost_logging',
+          code: safeErrorCode(costError),
+          message: costError instanceof Error ? costError.message : String(costError),
+          provider: classification.provider,
+          model: classification.model,
+        })
+      })
+      await safeRecordUsage(user.id, 'email_analysis', 1, {
         source: 'classification',
         relatedGmailMessageId: message.id || messageRef.id,
         relatedThreadId: message.threadId || null,
-      })
+      }, 'usage_email_analysis')
 
       const category = persistedState.profile.categories.find((item) => item.name === classification.result.category)
       const labelId = category ? labelMap.get(normalizeName(category.name)) : null
@@ -466,6 +584,7 @@ export async function POST(request: NextRequest) {
 
       if (highConfidence && classification.result.shouldApplyLabel && labelId) {
         try {
+          currentStep = 'gmail_apply_label'
           await gmail.users.messages.modify({
             userId: 'me',
             id: message.id || messageRef.id,
@@ -484,6 +603,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      currentStep = 'duplicate_draft_check'
       const duplicateDraftExists = await hasExistingDraftLog(user.id, message.id || messageRef.id, message.threadId)
       const seemsToNeedReply = !/no[- ]?reply|ne pas répondre|newsletter|unsubscribe|désabonner/i.test(`${sender} ${subject} ${body}`)
       const canCreateDraft =
@@ -497,11 +617,13 @@ export async function POST(request: NextRequest) {
 
       if (canCreateDraft && classification.result.draft) {
         try {
+          currentStep = 'draft_quota'
           const draftQuota = await checkQuota(user.id, 'ai_draft', 1)
           if (!draftQuota.allowed) {
             actionTaken = labelApplied ? 'Label appliqué, quota brouillons atteint' : 'Quota brouillons atteint'
             reason = 'Votre limite de brouillons IA est atteinte pour ce mois-ci.'
           } else {
+            currentStep = 'gmail_create_draft'
             draftId = await createReplyDraft({
               gmail,
               message,
@@ -511,11 +633,11 @@ export async function POST(request: NextRequest) {
             })
             draftsCreated += draftId ? 1 : 0
             if (draftId) {
-              await recordUsage(user.id, 'ai_draft', 1, {
+              await safeRecordUsage(user.id, 'ai_draft', 1, {
                 source: 'classification',
                 relatedGmailMessageId: message.id || messageRef.id,
                 relatedThreadId: message.threadId || null,
-              })
+              }, 'usage_ai_draft')
             }
             actionTaken = labelApplied ? 'Label appliqué + brouillon créé' : 'Brouillon créé'
           }
@@ -553,7 +675,7 @@ export async function POST(request: NextRequest) {
         previousCategory: existingLog?.predicted_category || null,
       }
       results.push(card)
-      await logClassification({
+      await safeLogClassification({
         userId: user.id,
         automationProfileId,
         result: card,
@@ -579,7 +701,8 @@ export async function POST(request: NextRequest) {
       hasModifyScope: true,
     })
 
-    const usage = await getMonthlyUsageSnapshot(user.id)
+    currentStep = 'usage_snapshot'
+    const usage = await safeGetMonthlyUsageSnapshot(user.id)
 
     return NextResponse.json({
       ok: true,
@@ -598,6 +721,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[gmail/classification/analyze-recent] Failed', {
       userId: user.id,
+      step: currentStep,
+      code: safeErrorCode(error),
       message: error instanceof Error ? error.message : 'Unknown error',
       analyzed,
       skipped,
@@ -606,6 +731,6 @@ export async function POST(request: NextRequest) {
       needsReview,
     })
 
-    return jsonError(500, 'server_exception', 'Analyse impossible pour le moment.')
+    return jsonError(500, currentStep, cleanAnalyzeFailureMessage(currentStep, error))
   }
 }

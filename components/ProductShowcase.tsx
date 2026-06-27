@@ -64,7 +64,7 @@ export const ProductShowcase: React.FC = () => {
   }
 
   return (
-    <Section id="pricing" className="max-md:py-10">
+    <Section id="pricing" className="max-md:py-10 dark:bg-[#0d1117]">
       <div className="flex flex-col gap-7 md:gap-14">
         <ScrollReveal>
           <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center">
@@ -82,8 +82,8 @@ export const ProductShowcase: React.FC = () => {
             <ScrollReveal key={idx} delay={idx * 0.15}>
               <motion.div className="h-full" whileHover={{ y: -4 }} transition={{ duration: 0.22 }}>
                 <Card
-                  className={`group relative flex h-full flex-col gap-4 overflow-hidden max-md:p-5 md:gap-5 ${
-                    plan.featured ? 'border-toolia-primary shadow-lg ring-2 ring-toolia-primary/10 lg:scale-[1.035]' : ''
+                  className={`group relative flex h-full flex-col gap-4 overflow-hidden max-md:p-5 md:gap-5 dark:border-white/10 dark:bg-slate-900/76 dark:shadow-[0_28px_80px_rgba(0,0,0,0.28)] ${
+                    plan.featured ? 'border-toolia-primary shadow-lg ring-2 ring-toolia-primary/10 dark:ring-blue-400/18 lg:scale-[1.035]' : ''
                   }`}
                 >
                   {plan.featured && (
@@ -107,14 +107,14 @@ export const ProductShowcase: React.FC = () => {
                     <p className="text-sm leading-6 text-toolia-text-secondary">{plan.description}</p>
                   </div>
 
-                  <div className="rounded-2xl border border-toolia-border-subtle bg-toolia-bg-secondary/70 p-3 md:p-4">
+                  <div className="rounded-2xl border border-toolia-border-subtle bg-toolia-bg-secondary/70 p-3 dark:border-white/10 dark:bg-slate-950/34 md:p-4">
                     <span className="text-xs font-semibold uppercase tracking-[0.12em] text-toolia-text-muted">Pour qui</span>
                     <p className="mt-2 text-sm font-semibold leading-6 text-toolia-text">
                       {audiences[idx]}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-toolia-primary/5 p-3 md:p-4">
+                  <div className="rounded-2xl border border-toolia-border-subtle/70 bg-toolia-primary/5 p-3 dark:border-white/10 dark:bg-white/[0.045] md:p-4">
                     <div>
                       <span className="mb-1 block text-xs font-medium text-toolia-text-secondary">{plan.setupLabel}</span>
                       <span className="text-lg font-bold text-toolia-text">{plan.setup}</span>

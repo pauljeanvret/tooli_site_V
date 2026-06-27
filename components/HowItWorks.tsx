@@ -1,72 +1,87 @@
 'use client'
 
 import React from 'react'
-import { motion } from 'framer-motion'
-import { ArrowRight, CheckCircle2, Mail, RotateCw, SlidersHorizontal } from 'lucide-react'
 import { Badge } from './Badge'
+import { Button } from './Button'
 import { Section } from './Section'
 import { ScrollReveal } from './ScrollReveal'
+import { BrandFlowLines } from './BrandFlowLines'
 import { copy } from '@/lib/copy'
-
-const icons = [Mail, SlidersHorizontal, RotateCw, CheckCircle2]
+import { trackEvent } from '@/lib/analytics'
 
 export const HowItWorks: React.FC = () => {
+  const handleDiagnosticClick = () => {
+    trackEvent('cta_click', {
+      cta_location: 'how_it_works',
+      cta_label: 'Diagnostiquer ma boîte mail',
+    })
+    window.location.href = '/diagnostic'
+  }
+
   return (
-    <Section id="how" className="py-10 sm:py-16 md:py-24 lg:py-28">
-      <div className="flex flex-col gap-7 md:gap-14">
+    <Section id="how" className="relative overflow-hidden py-16 sm:py-24 lg:py-32 dark:bg-[#0d1117]">
+      <BrandFlowLines className="left-1/2 top-4 h-[520px] w-[126vw] -translate-x-1/2 opacity-90" />
+
+      <div className="relative z-10 flex flex-col gap-10 md:gap-16">
         <ScrollReveal>
-          <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 text-center md:gap-5">
-            <Badge
-              variant="primary"
-              size="md"
-              className="border-slate-300 bg-slate-100 text-slate-800 shadow-sm backdrop-blur-md dark:border-white/25 dark:bg-white/12 dark:text-white"
-            >
-              {copy.howItWorks.setupTime}
-            </Badge>
-            <h2 className="font-heading text-[2rem] font-extrabold leading-tight tracking-[-0.035em] text-toolia-text md:text-4xl lg:text-5xl">
-              {copy.howItWorks.title}
-            </h2>
+          <div className="grid gap-8 lg:grid-cols-[1.08fr_0.72fr] lg:items-end">
+            <div>
+              <Badge
+                variant="primary"
+                size="md"
+                className="border-slate-300/80 bg-white/72 text-slate-800 shadow-sm backdrop-blur-md dark:border-white/18 dark:bg-white/8 dark:text-white"
+              >
+                {copy.howItWorks.setupTime}
+              </Badge>
+              <h2 className="font-heading mt-5 max-w-5xl text-[clamp(3.4rem,13vw,8.8rem)] font-extrabold leading-[0.84] tracking-[-0.06em] text-toolia-text [text-wrap:balance] sm:mt-7">
+                {copy.howItWorks.title}
+              </h2>
+            </div>
+
+            <div className="max-w-xl lg:pb-3">
+              <p className="text-base leading-7 text-toolia-text-secondary md:text-lg md:leading-8">
+                Une mise en place courte, des règles simples, puis une automatisation qui reste sous votre contrôle.
+              </p>
+              <div className="mt-6 flex flex-col items-start gap-4">
+                <p className="text-sm font-semibold leading-6 text-toolia-primary dark:text-sky-200 md:text-base">
+                  Vous gardez toujours le contrôle à chaque étape.
+                </p>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={handleDiagnosticClick}
+                  className="bg-[#172554] shadow-[0_18px_48px_rgba(29,78,216,0.26)] ring-1 ring-blue-100/70 hover:bg-[#1d4ed8] dark:bg-blue-500 dark:hover:bg-blue-400"
+                >
+                  Diagnostiquer ma boîte mail
+                </Button>
+              </div>
+            </div>
           </div>
         </ScrollReveal>
 
         <ScrollReveal>
-          <div className="relative overflow-hidden rounded-[26px] border border-toolia-border-subtle bg-toolia-card p-3 shadow-soft dark:border-white/10 sm:p-5 md:rounded-[34px] md:p-7">
-            <div className="absolute inset-x-10 top-[5.9rem] hidden h-px bg-toolia-border-subtle dark:bg-white/14 md:block" />
-            <motion.div
-              className="absolute left-10 top-[5.9rem] hidden h-px w-[calc(100%-5rem)] origin-left bg-toolia-primary dark:bg-sky-300/70 md:block"
-              initial={{ scaleX: 0 }}
-              whileInView={{ scaleX: 1 }}
-              viewport={{ once: true, amount: 0.45 }}
-              transition={{ duration: 1.15, ease: 'easeInOut' }}
-            />
+          <div className="border-y border-toolia-border-subtle/90 bg-white/38 shadow-[0_30px_90px_rgba(22,34,74,0.055)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/24">
+            {copy.howItWorks.steps.map((step) => (
+              <div
+                key={step.number}
+                className="grid gap-4 border-b border-toolia-border-subtle/80 px-1 py-7 last:border-b-0 sm:px-3 sm:py-8 md:grid-cols-[5.5rem_0.7fr_1fr] md:items-center md:gap-8 lg:px-6 lg:py-10 dark:border-white/10"
+              >
+                <div className="flex items-center gap-4 md:block">
+                  <span className="font-heading block text-[3.4rem] font-extrabold leading-none tracking-[-0.08em] text-toolia-primary/18 dark:text-sky-200/18 sm:text-[4.3rem]">
+                    0{step.number}
+                  </span>
+                  <span className="h-px flex-1 bg-toolia-border-subtle md:hidden dark:bg-white/12" />
+                </div>
 
-            <div className="grid gap-3 md:grid-cols-4 md:gap-5">
-              {copy.howItWorks.steps.map((step, idx) => {
-                const Icon = icons[idx] || Mail
-                return (
-                  <div key={step.number} className="relative flex gap-3 md:flex-col md:gap-5">
-                    <div className="relative z-10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-toolia-primary text-white shadow-btn-primary md:h-14 md:w-14">
-                      <Icon size={18} className="md:h-[21px] md:w-[21px]" />
-                    </div>
-                    {idx < copy.howItWorks.steps.length - 1 && (
-                      <div className="absolute left-5 top-10 h-[calc(100%-0.5rem)] w-px bg-toolia-border-subtle md:hidden" />
-                    )}
-                    <div className="min-w-0 flex-1 rounded-[20px] bg-toolia-bg-secondary/55 p-4 md:min-h-[220px] md:bg-transparent md:p-0">
-                      <div className="mb-2 flex items-center justify-between gap-3 md:mb-3">
-                        <span className="rounded-full border border-toolia-border-subtle bg-toolia-card px-2.5 py-1 text-[0.7rem] font-semibold text-toolia-text-secondary md:px-3 md:text-xs">
-                          Étape {step.number}
-                        </span>
-                        {idx < copy.howItWorks.steps.length - 1 && (
-                          <ArrowRight size={18} className="hidden text-toolia-primary/45 md:block" />
-                        )}
-                      </div>
-                      <h3 className="text-base font-bold text-toolia-text md:text-xl">{step.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-toolia-text-secondary md:mt-3">{step.description}</p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                <h3 className="font-heading text-2xl font-extrabold leading-tight tracking-[-0.035em] text-toolia-text sm:text-3xl">
+                  {step.title}
+                </h3>
+
+                <p className="max-w-2xl text-sm leading-7 text-toolia-text-secondary sm:text-base">
+                  {step.description}
+                </p>
+              </div>
+            ))}
           </div>
         </ScrollReveal>
       </div>

@@ -205,7 +205,7 @@ export const Navbar: React.FC = () => {
                     cta_location: 'navbar',
                     cta_label: copy.navbar.cta,
                   })
-                  window.location.href = '/signup'
+                  window.location.href = '/diagnostic'
                 }}
                 className="whitespace-nowrap"
               >
@@ -220,14 +220,14 @@ export const Navbar: React.FC = () => {
               onClick={() => {
                 trackEvent('cta_click', {
                   cta_location: 'navbar',
-                  cta_label: account ? 'Espace' : 'Commencer',
+                  cta_label: account ? 'Espace' : copy.navbar.cta,
                 })
                 setIsOpen(false)
-                window.location.href = account ? '/dashboard' : '/signup'
+                window.location.href = account ? '/dashboard' : '/diagnostic'
               }}
               className="rounded-full border border-toolia-border-subtle bg-toolia-card-hover px-3 py-1.5 text-xs font-semibold text-toolia-text transition hover:border-toolia-primary/60 hover:bg-toolia-card"
             >
-              {account ? 'Espace' : 'Commencer'}
+              {account ? 'Espace' : 'Diagnostic'}
             </button>
             <button
               className="text-toolia-text transition-colors hover:text-toolia-primary"
@@ -321,7 +321,7 @@ export const Navbar: React.FC = () => {
                           cta_location: 'navbar',
                           cta_label: copy.navbar.cta,
                         })
-                        window.location.href = '/signup'
+                        window.location.href = '/diagnostic'
                       }}
                       className="w-full"
                     >

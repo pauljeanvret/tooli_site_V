@@ -31,7 +31,7 @@ export const FAQ: React.FC = () => {
   }
 
   return (
-    <Section id="faq">
+    <Section id="faq" className="dark:bg-[#0d1117]">
       <div className="flex flex-col gap-10 md:gap-14">
         {/* Title */}
         <ScrollReveal>
@@ -45,7 +45,7 @@ export const FAQ: React.FC = () => {
           {items.map((item, idx) => (
             <ScrollReveal key={idx} delay={idx * 0.08}>
               <motion.div
-                className="rounded-card overflow-hidden bg-toolia-card"
+                className="overflow-hidden rounded-card border border-toolia-border-subtle bg-toolia-card dark:border-white/10 dark:bg-slate-900/72"
                 layout
               >
                 <button
@@ -71,7 +71,7 @@ export const FAQ: React.FC = () => {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className="px-6 py-4 bg-toolia-card-hover/50">
+                      <div className="border-t border-toolia-border-subtle bg-toolia-card-hover/50 px-6 py-4 dark:border-white/10 dark:bg-slate-950/36">
                         <p className="text-toolia-text-secondary text-sm leading-relaxed">
                           {item.answer}
                         </p>

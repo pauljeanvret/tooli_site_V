@@ -4,7 +4,16 @@ import Stripe from "stripe";
 import { normalizePlanId, type TooliaPlanId } from "./plan-config";
 import { getPlanFromStripePriceId, getStripePlanConfig, getStripeSecretKey } from "./stripe-plans";
 
-export type TooliaSubscriptionStatus = "demo" | "trialing" | "active" | "past_due" | "canceled";
+export type TooliaSubscriptionStatus =
+  | "demo"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "paused"
+  | "incomplete"
+  | "unpaid"
+  | "unknown";
 
 export type TooliaSubscriptionRecord = {
   id: string;
@@ -45,15 +54,27 @@ export function isPaidSubscriptionStatus(status: string | null | undefined) {
 }
 
 export function normalizeSubscriptionStatus(status: string | null | undefined): TooliaSubscriptionStatus {
-  if (status === "demo" || status === "trialing" || status === "active" || status === "past_due") {
-    return status;
+  if (!status) return "unknown";
+
+  const normalized = status.toLowerCase();
+  if (
+    normalized === "demo" ||
+    normalized === "trialing" ||
+    normalized === "active" ||
+    normalized === "past_due" ||
+    normalized === "paused" ||
+    normalized === "incomplete" ||
+    normalized === "unpaid" ||
+    normalized === "unknown"
+  ) {
+    return normalized;
   }
 
-  if (status === "canceled" || status === "cancelled" || status === "incomplete_expired") {
+  if (normalized === "canceled" || normalized === "cancelled" || normalized === "incomplete_expired") {
     return "canceled";
   }
 
-  return "past_due";
+  return "unknown";
 }
 
 export function dateFromStripeTimestamp(timestamp: number | null | undefined) {

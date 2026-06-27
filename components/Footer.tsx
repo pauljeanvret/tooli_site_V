@@ -27,7 +27,7 @@ export const Footer: React.FC = () => {
   }
 
   return (
-    <footer className="w-full border-t border-toolia-border-subtle bg-toolia-bg-secondary py-12 md:py-16">
+    <footer className="w-full border-t border-toolia-border-subtle bg-toolia-bg-secondary py-12 dark:border-white/10 dark:bg-[#0d1117] md:py-16">
       <div className="mx-auto max-w-layout px-6 md:px-8 xl:px-10">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} viewport={{ once: true }}>

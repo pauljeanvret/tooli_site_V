@@ -7,11 +7,11 @@ alter table public.stripe_revenue_events
 alter table public.stripe_revenue_events
   add column if not exists stripe_charge_id text;
 
-create unique index if not exists stripe_revenue_events_payment_intent_id_unique
+create index if not exists stripe_revenue_events_payment_intent_id_idx
   on public.stripe_revenue_events(stripe_payment_intent_id)
   where stripe_payment_intent_id is not null;
 
-create unique index if not exists stripe_revenue_events_charge_id_unique
+create index if not exists stripe_revenue_events_charge_id_idx
   on public.stripe_revenue_events(stripe_charge_id)
   where stripe_charge_id is not null;
 

@@ -8,7 +8,7 @@ import { ScrollReveal } from './ScrollReveal'
 
 export const Behind: React.FC = () => {
   return (
-    <Section id="behind">
+    <Section id="behind" className="dark:bg-[#0d1117]">
       <div className="mx-auto flex max-w-4xl flex-col gap-12">
         <ScrollReveal>
           <h2 className="font-heading text-2xl font-extrabold tracking-[-0.03em] text-toolia-text md:text-3xl lg:text-4xl">
@@ -23,7 +23,7 @@ export const Behind: React.FC = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
               viewport={{ once: true }}
-              className="h-32 w-32 overflow-hidden rounded-full border-2 border-toolia-border-subtle shadow-lg md:h-40 md:w-40"
+              className="h-32 w-32 overflow-hidden rounded-full border-2 border-toolia-border-subtle shadow-lg dark:border-white/12 md:h-40 md:w-40"
             >
               <Image
                 src="/profile/paul.jpg"
@@ -53,7 +53,7 @@ export const Behind: React.FC = () => {
                 principal et la validation finale entre vos mains.
               </p>
 
-              <div className="border-t border-toolia-border-subtle pt-4">
+              <div className="border-t border-toolia-border-subtle pt-4 dark:border-white/10">
                 <p className="text-sm italic leading-relaxed text-toolia-text-secondary">
                   « Moins d’opérations répétitives, plus de contrôle sur ce qui compte vraiment. »
                 </p>

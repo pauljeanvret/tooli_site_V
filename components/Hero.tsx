@@ -24,7 +24,7 @@ const heroItem = {
 
 export const Hero: React.FC = () => {
   const videoRef = React.useRef<HTMLVideoElement>(null)
-  const [primaryCta, setPrimaryCta] = React.useState(copy.hero.cta1)
+  const [secondaryCta, setSecondaryCta] = React.useState('Automatiser ma boîte Gmail')
 
   React.useEffect(() => {
     const video = videoRef.current
@@ -58,7 +58,7 @@ export const Hero: React.FC = () => {
     let active = true
 
     void getTooliaClientState().then((state) => {
-      if (active) setPrimaryCta(state.ctaLabel)
+      if (active) setSecondaryCta(state.ctaLabel)
     })
 
     return () => {
@@ -136,13 +136,13 @@ export const Hero: React.FC = () => {
               onClick={() => {
                 trackEvent('cta_click', {
                   cta_location: 'hero',
-                  cta_label: primaryCta,
+                  cta_label: 'Diagnostiquer ma boîte mail',
                 })
-                void routeToTooliaStart()
+                window.location.href = '/diagnostic'
               }}
-              className="w-full sm:w-auto"
+              className="w-full bg-[#172554] shadow-[0_22px_60px_rgba(29,78,216,0.34)] ring-1 ring-white/65 hover:bg-[#1d4ed8] hover:shadow-[0_26px_70px_rgba(29,78,216,0.42)] dark:bg-blue-500 dark:text-white dark:ring-white/20 dark:hover:bg-blue-400 sm:w-auto"
             >
-              {primaryCta}
+              Diagnostiquer ma boîte mail
             </Button>
             <Button
               variant="outline"
@@ -150,16 +150,16 @@ export const Hero: React.FC = () => {
               onClick={() => {
                 trackEvent('cta_click', {
                   cta_location: 'hero',
-                  cta_label: 'Diagnostiquer ma boîte mail',
+                  cta_label: secondaryCta,
                 })
-                window.location.href = '/diagnostic'
+                void routeToTooliaStart()
               }}
-              className="w-full border-white/70 bg-white/[0.92] text-slate-950 shadow-[0_16px_36px_rgba(15,23,42,0.14)] backdrop-blur-md hover:bg-white sm:w-auto dark:border-white/35 dark:bg-white/[0.18] dark:text-white dark:hover:bg-white/25"
+              className="w-full border-white/70 bg-white/[0.78] text-slate-950 shadow-[0_14px_36px_rgba(15,23,42,0.12)] backdrop-blur-md hover:bg-white hover:shadow-[0_16px_42px_rgba(15,23,42,0.16)] sm:w-auto dark:border-white/25 dark:bg-slate-950/38 dark:text-white dark:hover:bg-slate-900/58"
             >
-              Diagnostiquer ma boîte mail
+              {secondaryCta}
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="lg"
               onClick={() => {
                 trackEvent('cta_click', {
@@ -168,7 +168,7 @@ export const Hero: React.FC = () => {
                 })
                 handleSmoothScroll('#how')
               }}
-              className="w-full sm:w-auto"
+              className="w-full border-white/70 bg-white/[0.78] text-slate-950 shadow-[0_14px_36px_rgba(15,23,42,0.12)] backdrop-blur-md hover:bg-white hover:shadow-[0_16px_42px_rgba(15,23,42,0.16)] sm:w-auto dark:border-white/25 dark:bg-slate-950/38 dark:text-white dark:hover:bg-slate-900/58"
             >
               {copy.hero.cta2}
             </Button>

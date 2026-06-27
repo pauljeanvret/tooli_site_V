@@ -9,7 +9,7 @@ export const copy = {
       { label: 'FAQ', href: '#faq' },
       { label: 'Contact', href: '#contact' },
     ],
-    cta: 'Automatiser ma boîte Gmail',
+    cta: 'Diagnostiquer ma boîte mail',
   },
 
   hero: {
@@ -21,7 +21,7 @@ export const copy = {
       'Brouillons à valider',
       'Contrôle total',
     ],
-    cta1: 'Automatiser ma boîte Gmail',
+    cta1: 'Diagnostiquer ma boîte mail',
     cta2: 'Voir comment ça marche',
     subCta: 'Sans engagement • Vous gardez le contrôle',
     mockupTitle: 'Inbox',
@@ -72,7 +72,7 @@ export const copy = {
           '1 500 emails traités par mois',
           '100 brouillons IA par mois',
           '1 analyse de style par mois',
-          'Traitement automatique toutes les 30 min minimum',
+          'Vérification toutes les 30 min',
           'Telegram non inclus',
           'Support standard',
         ],
@@ -92,7 +92,7 @@ export const copy = {
           '400 brouillons IA par mois',
           'Alertes Telegram par catégorie',
           '2 analyses de style par mois',
-          'Traitement automatique toutes les 10 min minimum',
+          'Vérification toutes les 10 min',
           'Support prioritaire',
         ],
         cta: 'Voir les détails du pack',
@@ -111,7 +111,7 @@ export const copy = {
           '1 200 brouillons IA par mois',
           'Telegram avancé',
           '4 analyses de style par mois',
-          'Traitement automatique toutes les 5 min minimum',
+          'Vérification toutes les 5 min',
           'Support prioritaire',
         ],
         cta: 'Voir les détails du pack',
@@ -140,9 +140,9 @@ export const copy = {
       },
       {
         number: '3',
-        title: 'Toolia travaille en arrière-plan',
+        title: 'Toolia trie et prépare',
         description:
-          'Les emails sont traités automatiquement selon votre offre : 30 min, 10 min ou 5 min minimum.',
+          'Toolia vérifie vos emails selon votre offre : toutes les 30 min, 10 min ou 5 min.',
         icon: 'Zap',
       },
       {
@@ -207,7 +207,7 @@ export const copy = {
       {
         question: 'À quelle fréquence mes emails sont-ils traités ?',
         answer:
-          'Selon votre offre : Starter toutes les 30 minutes minimum, Pro toutes les 10 minutes minimum, Premium toutes les 5 minutes minimum.',
+          'Selon votre offre : Starter, vérification toutes les 30 min ; Pro, toutes les 10 min ; Premium, toutes les 5 min.',
       },
       {
         question: 'Est-ce que mes emails sont supprimés ?',

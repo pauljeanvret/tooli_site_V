@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { isAdminEmail } from '@/lib/admin'
 import { getPlanLimits, normalizePlanId } from '@/lib/saas/plan-config'
 import { isPaidSubscriptionStatus } from '@/lib/saas/subscription-store'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { requireAuthenticatedRouteUser } from '@/lib/supabase/route-auth'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate',
+}
 
 type SubscriptionRow = {
   id: string
@@ -86,27 +92,17 @@ const AI_COST_ENV_VARS = [
   'LLM_DRAFT_COMPLEX_OUTPUT_COST_PER_1M',
 ]
 
-function getAdminEmails() {
-  return (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-function isAdminEmail(email: string | null | undefined) {
-  if (!email) return false
-  const adminEmails = getAdminEmails()
-  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase())
-}
-
 async function requireAdmin(request: NextRequest) {
   const auth = await requireAuthenticatedRouteUser(request)
-  if (auth.response) return { user: null, response: auth.response }
+  if (auth.response) {
+    auth.response.headers.set('Cache-Control', NO_STORE_HEADERS['Cache-Control'])
+    return { user: null, response: auth.response }
+  }
 
   if (!isAdminEmail(auth.user.email)) {
     return {
       user: null,
-      response: NextResponse.json(
+      response: jsonNoStore(
         {
           ok: false,
           message: 'Acces admin non autorise.',
@@ -117,6 +113,16 @@ async function requireAdmin(request: NextRequest) {
   }
 
   return { user: auth.user, response: null }
+}
+
+function jsonNoStore(body: unknown, init?: ResponseInit) {
+  const headers = new Headers(init?.headers)
+  headers.set('Cache-Control', NO_STORE_HEADERS['Cache-Control'])
+
+  return NextResponse.json(body, {
+    ...init,
+    headers,
+  })
 }
 
 function currentMonthKey() {
@@ -139,6 +145,10 @@ function getMonthRange(monthKey: string | null) {
 function numberValue(value: number | string | null | undefined) {
   const parsed = Number(value || 0)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function isNonEmptyString(value: string | null | undefined): value is string {
+  return Boolean(value)
 }
 
 function centsToEur(value: number | string | null | undefined) {
@@ -204,6 +214,16 @@ function pushRevenueMap(map: Map<string, StripeRevenueRow[]>, key: string | null
   map.get(key)!.push(row)
 }
 
+function pushUsageMap(map: Map<string, AiUsageCostRow[]>, key: string | null | undefined, row: AiUsageCostRow) {
+  if (!key) return
+  if (!map.has(key)) map.set(key, [])
+  map.get(key)!.push(row)
+}
+
+function getUsageProfileKey(row: AiUsageCostRow) {
+  return row.customer_id || row.user_id || null
+}
+
 function mergeRevenueEvents(...groups: Array<StripeRevenueRow[] | undefined>) {
   const seen = new Set<string>()
   const events: StripeRevenueRow[] = []
@@ -215,6 +235,19 @@ function mergeRevenueEvents(...groups: Array<StripeRevenueRow[] | undefined>) {
     }
   }
   return events
+}
+
+function mergeUsageEvents(...groups: Array<AiUsageCostRow[] | undefined>) {
+  const seen = new Set<string>()
+  const events: AiUsageCostRow[] = []
+  for (const group of groups) {
+    for (const event of group || []) {
+      if (seen.has(event.id)) continue
+      seen.add(event.id)
+      events.push(event)
+    }
+  }
+  return events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 }
 
 function connectionMap<T extends { user_id: string }>(rows: T[] | null | undefined, isConnected: (row: T) => boolean) {
@@ -232,7 +265,7 @@ export async function GET(request: NextRequest) {
 
   const admin = getSupabaseAdminClient()
   if (!admin) {
-    return NextResponse.json(
+    return jsonNoStore(
       { ok: false, message: 'Client Supabase serveur indisponible.' },
       { status: 500 },
     )
@@ -254,7 +287,7 @@ export async function GET(request: NextRequest) {
       message: subscriptionError.message,
       code: subscriptionError.code,
     })
-    return NextResponse.json({ ok: false, message: 'Impossible de charger les abonnements.' }, { status: 500 })
+    return jsonNoStore({ ok: false, message: 'Impossible de charger les abonnements.' }, { status: 500 })
   }
 
   const subscriptions = (subscriptionData || []) as SubscriptionRow[]
@@ -275,7 +308,7 @@ export async function GET(request: NextRequest) {
       message: usageError.message,
       code: usageError.code,
     })
-    return NextResponse.json(
+    return jsonNoStore(
       {
         ok: false,
         message: 'Impossible de charger les couts IA. Verifiez que la migration ai_usage_cost_ledger est appliquee.',
@@ -286,8 +319,8 @@ export async function GET(request: NextRequest) {
 
   const allUsageRows = (usageData || []) as AiUsageCostRow[]
   const ignoredZeroPlaceholderEvents = allUsageRows.filter(isZeroPlaceholderUsageEvent)
-  const ignoredOtherEvents = allUsageRows.filter((row) => !row.action_type || row.action_type === 'other')
-  const usageRows = allUsageRows.filter((row) => row.action_type && row.action_type !== 'other')
+  const usageRows = allUsageRows.filter((row) => !isZeroPlaceholderUsageEvent(row))
+  const nonPlaceholderOtherEvents = usageRows.filter((row) => !row.action_type || row.action_type === 'other')
 
   let stripeRevenueAvailable = true
   let stripeRevenueTableMissing = false
@@ -335,8 +368,8 @@ export async function GET(request: NextRequest) {
   const userIds = Array.from(
     new Set([
       ...Array.from(latestSubscriptions.keys()),
-      ...usageRows.map((row) => row.user_id).filter(Boolean),
-      ...(revenueRows.map((row) => row.user_id).filter(Boolean) as string[]),
+      ...usageRows.map((row) => getUsageProfileKey(row)).filter(isNonEmptyString),
+      ...revenueRows.map((row) => row.user_id).filter(isNonEmptyString),
     ]),
   )
 
@@ -371,10 +404,13 @@ export async function GET(request: NextRequest) {
       Boolean((row.telegram_chat_id || row.chat_id_encrypted) && (row.telegram_enabled || row.enabled) && row.telegram_connection_status !== 'disconnected'),
   )
 
-  const eventsByUser = new Map<string, AiUsageCostRow[]>()
+  const eventsByProfileId = new Map<string, AiUsageCostRow[]>()
+  const eventsByStripeCustomer = new Map<string, AiUsageCostRow[]>()
+  const eventProfileJoinSource = new Map<string, 'customer_id' | 'user_id'>()
   for (const row of usageRows) {
-    if (!eventsByUser.has(row.user_id)) eventsByUser.set(row.user_id, [])
-    eventsByUser.get(row.user_id)!.push(row)
+    pushUsageMap(eventsByProfileId, getUsageProfileKey(row), row)
+    pushUsageMap(eventsByStripeCustomer, row.stripe_customer_id, row)
+    eventProfileJoinSource.set(row.id, row.customer_id ? 'customer_id' : 'user_id')
   }
 
   const revenueByUser = new Map<string, StripeRevenueRow[]>()
@@ -384,9 +420,16 @@ export async function GET(request: NextRequest) {
     pushRevenueMap(revenueByCustomer, row.stripe_customer_id, row)
   }
 
-  const zeroCostEventsWithTokens = usageRows.filter(
-    (event) => numberValue(event.total_tokens) > 0 && numberValue(event.total_cost_eur) === 0,
-  )
+  const zeroCostEventsWithTokens = usageRows.filter((event) => {
+    const model = (event.model || 'unknown').toLowerCase()
+    return (
+      model !== 'unknown' &&
+      numberValue(event.total_tokens) > 0 &&
+      numberValue(event.total_cost_eur) === 0
+    )
+  })
+
+  const matchedAiEventIds = new Set<string>()
 
   const rows = userIds
     .map((userId) => {
@@ -394,12 +437,26 @@ export async function GET(request: NextRequest) {
       const matchingRevenue = revenueRows.find(
         (row) => row.user_id === userId || Boolean(subscription?.stripe_customer_id && row.stripe_customer_id === subscription.stripe_customer_id),
       )
+      const usageByProfileId = eventsByProfileId.get(userId)
+      const usageByStripeCustomer = eventsByStripeCustomer.get(subscription?.stripe_customer_id || matchingRevenue?.stripe_customer_id || '')
+      const events = mergeUsageEvents(usageByProfileId, usageByStripeCustomer)
+      for (const event of events) matchedAiEventIds.add(event.id)
+
+      const usagePlan = events.find((row) => row.plan)?.plan || usageRows.find((row) => getUsageProfileKey(row) === userId)?.plan
+      const hasStripeOnlyUsage = Boolean(
+        usageByStripeCustomer?.some((event) => !usageByProfileId?.some((profileEvent) => profileEvent.id === event.id)),
+      )
+      const aiJoinKeys = Array.from(
+        new Set([
+          ...(usageByProfileId || []).map((event) => eventProfileJoinSource.get(event.id) || 'user_id'),
+          ...(hasStripeOnlyUsage ? ['stripe_customer_id'] : []),
+        ]),
+      )
       const plan = normalizePlanId(
-        subscription?.plan_id || usageRows.find((row) => row.user_id === userId)?.plan || matchingRevenue?.plan || null,
+        subscription?.plan_id || usagePlan || matchingRevenue?.plan || null,
       )
       const limits = getPlanLimits(plan)
       const profile = profiles.get(userId) || null
-      const events = eventsByUser.get(userId) || []
       const revenueEvents = mergeRevenueEvents(
         revenueByUser.get(userId),
         revenueByCustomer.get(subscription?.stripe_customer_id || events[0]?.stripe_customer_id || ''),
@@ -408,7 +465,9 @@ export async function GET(request: NextRequest) {
       const promptTokens = events.reduce((sum, event) => sum + numberValue(event.prompt_tokens), 0)
       const completionTokens = events.reduce((sum, event) => sum + numberValue(event.completion_tokens), 0)
       const gmailMessageCount = events.reduce((sum, event) => sum + numberValue(event.gmail_message_count), 0)
-      const estimatedPlanRevenue = subscription && isPaidSubscriptionStatus(subscription.status) ? limits.monthlyPrice : 0
+      const hasRealStripeSubscription = Boolean(subscription?.stripe_customer_id && subscription?.stripe_subscription_id)
+      const estimatedPlanRevenue =
+        subscription && hasRealStripeSubscription && isPaidSubscriptionStatus(subscription.status) ? limits.monthlyPrice : 0
       const exactRevenue = revenueEvents.reduce((sum, event) => sum + centsToEur(event.net_revenue_cents), 0)
       const stripeAmountPaid = revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_paid_cents), 0)
       const stripeDiscount = revenueEvents.reduce((sum, event) => sum + centsToEur(event.amount_discount_cents), 0)
@@ -454,9 +513,12 @@ export async function GET(request: NextRequest) {
         stripeDiscountEur: roundCurrency(stripeDiscount),
         stripeRefundedEur: roundCurrency(stripeRefunded),
         aiCostEur: totalCost,
+        aiCostExactEur: totalCost,
         profitEur: roundCurrency(profit),
         marginPercent: margin === null ? null : Math.round(margin * 10) / 10,
         aiCalls: events.length,
+        aiEventsCount: events.length,
+        aiJoinKey: aiJoinKeys.length ? aiJoinKeys.join(' + ') : 'none',
         promptTokens,
         completionTokens,
         totalTokens: promptTokens + completionTokens,
@@ -497,7 +559,9 @@ export async function GET(request: NextRequest) {
     return b.aiCostEur - a.aiCostEur
   })
 
-  const activeCustomerCount = rows.filter((row) => isPaidSubscriptionStatus(row.subscriptionStatus)).length
+  const activeCustomerCount = rows.filter(
+    (row) => Boolean(row.stripeCustomerId && row.stripeSubscriptionId) && isPaidSubscriptionStatus(row.subscriptionStatus),
+  ).length
   const totalRevenue = rows.reduce((sum, row) => sum + row.estimatedRevenueEur, 0)
   const exactRevenueTotal = rows.reduce((sum, row) => sum + row.exactStripeRevenueEur, 0)
   const estimatedPlanRevenueTotal = rows.reduce((sum, row) => sum + row.estimatedPlanRevenueEur, 0)
@@ -512,10 +576,14 @@ export async function GET(request: NextRequest) {
     (current, row) => (!current || row.aiCostEur > current.aiCostEur ? row : current),
     null,
   )
+  const aiUsageEventsMatched = matchedAiEventIds.size
+  const aiUsageEventsUnmatched = usageRows.filter((row) => !matchedAiEventIds.has(row.id)).length
+  const latestAiEventAt = usageRows[0]?.created_at || null
 
-  return NextResponse.json({
+  return jsonNoStore({
     ok: true,
     monthKey,
+    generatedAt: new Date().toISOString(),
     revenueMode: stripeRevenueAvailable ? 'exact_stripe_net_only' : 'stripe_revenue_unavailable',
     warnings: {
       stripeRevenueAvailable,
@@ -534,8 +602,13 @@ export async function GET(request: NextRequest) {
           : null,
       aiCostPricingEnvVars: AI_COST_ENV_VARS,
       zeroCostEventsWithTokens: zeroCostEventsWithTokens.length,
-      ignoredOtherEvents: ignoredOtherEvents.length,
+      nonPlaceholderOtherEvents: nonPlaceholderOtherEvents.length,
       ignoredZeroPlaceholderEvents: ignoredZeroPlaceholderEvents.length,
+      aiUsageEventsLoaded: allUsageRows.length,
+      aiUsageEventsCounted: usageRows.length,
+      aiUsageEventsMatched,
+      aiUsageEventsUnmatched,
+      latestAiEventAt,
       customersMissingExactStripeRevenue,
       customersWithRefundedStripeRevenue,
       fullyRefundedPaymentsDetected,
@@ -559,6 +632,11 @@ export async function GET(request: NextRequest) {
       estimatedProfitEur: roundCurrency(totalRevenue - totalCost),
       averageAiCostPerActiveCustomerEur: activeCustomerCount ? roundCurrency(totalCost / activeCustomerCount) : 0,
       aiCalls: rows.reduce((sum, row) => sum + row.aiCalls, 0),
+      aiUsageEventsLoaded: allUsageRows.length,
+      aiUsageEventsCounted: usageRows.length,
+      aiUsageEventsMatched,
+      aiUsageEventsUnmatched,
+      latestAiEventAt,
       latestAiUsageAt:
         rows
           .map((row) => row.lastAiUsageAt)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
+import { isAdminEmail } from '@/lib/admin'
 import { diagnosticStatusOptions, type DiagnosticStatus } from '@/lib/diagnostic'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { requireAuthenticatedRouteUser } from '@/lib/supabase/route-auth'
@@ -9,19 +10,6 @@ export const dynamic = 'force-dynamic'
 
 const statusValues = diagnosticStatusOptions.map((status) => status.value) as [DiagnosticStatus, ...DiagnosticStatus[]]
 const planValues = ['starter', 'pro', 'premium'] as const
-
-function getAdminEmails() {
-  return (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-function isAdminEmail(email: string | null | undefined) {
-  if (!email) return false
-  const adminEmails = getAdminEmails()
-  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase())
-}
 
 async function requireAdmin(request: NextRequest) {
   const auth = await requireAuthenticatedRouteUser(request)

@@ -14,6 +14,7 @@ import {
 import { saveWritingStyleProfile } from '@/lib/saas/supabase-store'
 import { checkQuota, getMonthlyUsageSnapshot, recordUsage } from '@/lib/saas/plan-limits'
 import { requirePaidSaasRouteAccess } from '@/lib/saas/route-access'
+import { estimateTokensFromChars, recordAiCostUsage } from '@/lib/ai-costs'
 
 const cleanErrorMessage = 'Analyse IA impossible pour le moment.'
 
@@ -113,6 +114,31 @@ export async function POST(request: NextRequest) {
     }
 
     const analysis = await analyzeWritingStyleFromSamples(samples)
+    await recordAiCostUsage({
+      userId: user.id,
+      customerId: user.id,
+      stripeCustomerId: access.subscriptionAccess.subscription?.stripe_customer_id || null,
+      plan: access.subscriptionAccess.planId,
+      source: 'learning',
+      actionType: 'style_analysis',
+      provider: analysis.provider,
+      model: analysis.model,
+      promptTokens: estimateTokensFromChars(samples.reduce((sum, sample) => sum + sample.length, 0) + 1200),
+      completionTokens: estimateTokensFromChars(JSON.stringify(analysis.profile).length),
+      gmailMessageCount: usableSampleCount,
+      metadata: {
+        route: 'gmail_learning_analyze_sent',
+        sample_count: usableSampleCount,
+      },
+      success: true,
+    }).catch((costError) => {
+      console.warn('[gmail/learning/analyze-sent] AI cost logging failed', {
+        message: costError instanceof Error ? costError.message : String(costError),
+        provider: analysis.provider,
+        model: analysis.model,
+        usableSampleCount,
+      })
+    })
     const savedProfile = await saveWritingStyleProfile(user.id, analysis.profile)
     const usage = await recordUsage(user.id, 'style_analysis', 1, {
       source: 'learning',

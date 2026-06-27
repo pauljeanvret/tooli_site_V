@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -18,6 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import { Button } from '@/components/Button'
@@ -45,6 +47,7 @@ import {
 } from '@/lib/saas/plan-config'
 import { findDraftConsistencyIssues } from '@/lib/saas/profile-consistency'
 import { trackEvent } from '@/lib/analytics'
+import { isAdminEmail } from '@/lib/admin'
 
 const storageKeys = {
   session: 'toolia_demo_session',
@@ -372,7 +375,7 @@ const rawPlanOptions: PlanOption[] = [
     setup: '49 € setup',
     maxLabels: 5,
     description: 'Pour démarrer avec une automatisation Gmail simple et maîtrisée.',
-    features: ['5 labels Gmail', '1 500 emails traités/mois', '100 brouillons IA/mois', 'Traitement automatique toutes les 30 min minimum', 'Telegram non inclus'],
+    features: ['5 labels Gmail', '1 500 emails traités/mois', '100 brouillons IA/mois', 'Vérification toutes les 30 min', 'Telegram non inclus'],
   },
   {
     id: 'pro',
@@ -381,7 +384,7 @@ const rawPlanOptions: PlanOption[] = [
     setup: '99 € setup',
     maxLabels: 12,
     description: 'Pour indépendants et petites équipes qui vivent dans Gmail.',
-    features: ['12 labels Gmail', '4 000 emails traités/mois', '400 brouillons IA/mois', 'Alertes Telegram par catégorie', 'Traitement automatique toutes les 10 min minimum'],
+    features: ['12 labels Gmail', '4 000 emails traités/mois', '400 brouillons IA/mois', 'Alertes Telegram par catégorie', 'Vérification toutes les 10 min'],
     featured: true,
   },
   {
@@ -391,7 +394,7 @@ const rawPlanOptions: PlanOption[] = [
     setup: '199 € setup',
     maxLabels: 25,
     description: 'Pour volumes plus élevés et besoin de suivi plus rapide.',
-    features: ['25 catégories personnalisées', '10 000 emails traités/mois', '1 200 brouillons IA/mois', 'Telegram avancé inclus', 'Traitement automatique toutes les 5 min minimum'],
+    features: ['25 catégories personnalisées', '10 000 emails traités/mois', '1 200 brouillons IA/mois', 'Telegram avancé inclus', 'Vérification toutes les 5 min'],
   },
 ]
 
@@ -404,7 +407,7 @@ const planOptions: PlanOption[] = rawPlanOptions.map((plan) => {
       price: '29 €/mois',
       setup: '49 € setup',
       description: 'Pour démarrer avec une automatisation Gmail simple et maîtrisée.',
-      features: ['5 labels Gmail', '1 500 emails traités/mois', '100 brouillons IA/mois', '1 analyse de style/mois', 'Traitement automatique toutes les 30 min minimum', 'Telegram non inclus'],
+      features: ['5 labels Gmail', '1 500 emails traités/mois', '100 brouillons IA/mois', '1 analyse de style/mois', 'Vérification toutes les 30 min', 'Telegram non inclus'],
     }
   }
 
@@ -414,7 +417,7 @@ const planOptions: PlanOption[] = rawPlanOptions.map((plan) => {
       price: '69 €/mois',
       setup: '99 € setup',
       description: 'Pour indépendants et petites équipes qui vivent dans Gmail.',
-      features: ['12 labels Gmail', '4 000 emails traités/mois', '400 brouillons IA/mois', 'Alertes Telegram par catégorie', 'Traitement automatique toutes les 10 min minimum'],
+      features: ['12 labels Gmail', '4 000 emails traités/mois', '400 brouillons IA/mois', 'Alertes Telegram par catégorie', 'Vérification toutes les 10 min'],
     }
   }
 
@@ -423,7 +426,7 @@ const planOptions: PlanOption[] = rawPlanOptions.map((plan) => {
     price: '129 €/mois',
     setup: '199 € setup',
     description: 'Pour volumes plus élevés et besoin de suivi plus rapide.',
-    features: ['25 catégories personnalisées', '10 000 emails traités/mois', '1 200 brouillons IA/mois', 'Telegram avancé inclus', 'Traitement automatique toutes les 5 min minimum'],
+    features: ['25 catégories personnalisées', '10 000 emails traités/mois', '1 200 brouillons IA/mois', 'Telegram avancé inclus', 'Vérification toutes les 5 min'],
   }
 })
 
@@ -1243,6 +1246,233 @@ function summarySafetyItems() {
     'Les emails ne sont jamais supprimés définitivement.',
     'Vous pouvez mettre l’automatisation en pause à tout moment.',
   ]
+}
+
+const gmailWarningScreenshots = [
+  {
+    src: '/google-warning/google-warning-advanced-settings-crop.png',
+    alt: 'Écran Google avec le lien Paramètres avancés',
+    caption: 'Étape 1 — Paramètres avancés',
+    width: 1860,
+    height: 940,
+  },
+  {
+    src: '/google-warning/google-warning-access-link-crop.png',
+    alt: 'Écran Google avec le lien Accéder à toolia.tech',
+    caption: 'Étape 2 — Accéder à toolia.tech',
+    width: 1840,
+    height: 1240,
+  },
+] as const
+
+function GmailOAuthExplanationContent() {
+  return (
+    <div className="space-y-5">
+      <section className="rounded-[24px] border border-amber-300/45 bg-amber-100/70 p-5 shadow-sm dark:border-amber-300/20 dark:bg-amber-300/10">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200">
+          À lire avant de continuer
+        </p>
+        <p className="mt-3 text-sm leading-6 text-slate-800 dark:text-toolia-text-secondary">
+          Google peut afficher un écran d’avertissement pendant la connexion. C’est normal tant que la validation
+          complète de Toolia est en cours. Lisez les étapes ci-dessous avant de cliquer sur Continuer vers Google.
+        </p>
+      </section>
+
+      <section className="rounded-[28px] border border-toolia-info/25 bg-toolia-info/10 p-5 sm:p-6">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-toolia-info">Guide Google</p>
+          <h2 className="mt-2 text-2xl font-bold text-toolia-text sm:text-3xl">
+            Si Google affiche un avertissement
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-toolia-text-secondary">
+            Suivez simplement ces étapes pour continuer la connexion Gmail.
+          </p>
+        </div>
+
+        <ol className="mt-5 grid gap-4 text-sm leading-6 text-toolia-text-secondary lg:grid-cols-3">
+          <li className="rounded-2xl border border-toolia-border-subtle bg-toolia-card p-4 shadow-sm">
+            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-toolia-primary text-sm font-bold text-white">
+              1
+            </span>
+            <p className="font-semibold text-toolia-text">Cliquez sur “Paramètres avancés” en bas à gauche.</p>
+          </li>
+          <li className="rounded-2xl border border-toolia-border-subtle bg-toolia-card p-4 shadow-sm">
+            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-toolia-primary text-sm font-bold text-white">
+              2
+            </span>
+            <p className="font-semibold text-toolia-text">Cliquez sur “Accéder à toolia.tech (non sécurisé)”.</p>
+          </li>
+          <li className="rounded-2xl border border-toolia-border-subtle bg-toolia-card p-4 shadow-sm">
+            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-toolia-primary text-sm font-bold text-white">
+              3
+            </span>
+            <p className="font-semibold text-toolia-text">
+              Vous revenez ensuite sur Toolia pour terminer la connexion Gmail.
+            </p>
+          </li>
+        </ol>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {gmailWarningScreenshots.map((screenshot) => (
+            <figure
+              key={screenshot.src}
+              className="overflow-hidden rounded-[22px] border border-toolia-border-subtle bg-toolia-card shadow-sm"
+            >
+              <div className="bg-white p-2">
+                <Image
+                  src={screenshot.src}
+                  alt={screenshot.alt}
+                  width={screenshot.width}
+                  height={screenshot.height}
+                  className="h-auto w-full rounded-2xl border border-slate-200 object-contain"
+                  sizes="(min-width: 1024px) 520px, (min-width: 768px) 45vw, 100vw"
+                />
+              </div>
+              <figcaption className="border-t border-toolia-border-subtle px-4 py-3 text-sm font-semibold text-toolia-text">
+                {screenshot.caption}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <div className="rounded-[24px] border border-toolia-border-subtle bg-toolia-card-hover p-5">
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-toolia-info/25 bg-toolia-info/10 text-toolia-info">
+            <ShieldCheck size={22} />
+          </div>
+          <div className="space-y-3 text-sm leading-6 text-toolia-text-secondary">
+            <p className="text-base font-semibold leading-7 text-toolia-text">
+              Toolia est disponible, et sa validation Google complète est encore en cours. Ce message ne signifie pas
+              qu’un problème de sécurité a été détecté : c’est l’écran affiché par Google tant que la validation
+              complète n’est pas terminée.
+            </p>
+            <p>
+              Vos données Gmail sont utilisées uniquement pour faire fonctionner Toolia : organiser vos emails, détecter
+              les messages importants et préparer des réponses selon vos règles. Vos emails ne sont pas vendus, ne sont
+              pas utilisés pour entraîner une IA, et vous pouvez retirer l’accès à tout moment depuis votre compte Google.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p className="rounded-card border border-toolia-success/25 bg-toolia-success/10 p-4 text-sm font-medium leading-6 text-toolia-text">
+        Vous gardez le contrôle : Toolia ne fait que ce que vous avez configuré, et l’accès peut être retiré à tout
+        moment.
+      </p>
+    </div>
+  )
+}
+
+function GmailOAuthActions({
+  onContinue,
+  isLoading,
+  error,
+}: {
+  onContinue: () => void
+  isLoading: boolean
+  error?: string
+}) {
+  const [hasReadGuide, setHasReadGuide] = useState(false)
+  const canContinue = hasReadGuide && !isLoading
+
+  return (
+    <div className="mt-6 space-y-4">
+      <label className="flex cursor-pointer items-start gap-3 rounded-[20px] border border-toolia-border-subtle bg-toolia-card-hover p-4 text-sm leading-6 text-toolia-text-secondary">
+        <input
+          type="checkbox"
+          checked={hasReadGuide}
+          onChange={(event) => setHasReadGuide(event.target.checked)}
+          disabled={isLoading}
+          className="mt-1 h-4 w-4 rounded border-toolia-border-subtle text-toolia-primary focus:ring-toolia-primary disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <span>
+          J’ai lu les étapes et je comprends que Google peut afficher cet écran pendant la validation complète.
+        </span>
+      </label>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Button
+          type="button"
+          size="lg"
+          onClick={onContinue}
+          disabled={!canContinue}
+          isLoading={isLoading}
+          className="sm:flex-1 disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          Continuer vers Google
+        </Button>
+        <Link
+          href="/privacy"
+          className="inline-flex items-center justify-center rounded-btn border border-toolia-border-subtle px-5 py-4 text-sm font-semibold text-toolia-text transition hover:border-toolia-primary/50 hover:bg-toolia-card-hover"
+        >
+          En savoir plus sur la confidentialité
+        </Link>
+      </div>
+      {error && <p className="text-sm font-medium text-toolia-danger sm:col-span-2">{error}</p>}
+    </div>
+  )
+}
+
+function GmailOAuthExplanationCard({
+  onContinue,
+  isLoading,
+  error,
+}: {
+  onContinue: () => void
+  isLoading: boolean
+  error?: string
+}) {
+  return (
+    <AppCard className="lg:col-span-2">
+      <GmailOAuthExplanationContent />
+      <GmailOAuthActions onContinue={onContinue} isLoading={isLoading} error={error} />
+    </AppCard>
+  )
+}
+
+function GmailOAuthExplanationModal({
+  open,
+  onClose,
+  onContinue,
+  isLoading,
+  error,
+}: {
+  open: boolean
+  onClose: () => void
+  onContinue: () => void
+  isLoading: boolean
+  error?: string
+}) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gmail-oauth-warning-title"
+        className="max-h-[calc(100dvh-3rem)] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-toolia-border-subtle bg-toolia-card p-5 shadow-2xl sm:p-6"
+      >
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <p id="gmail-oauth-warning-title" className="text-sm font-semibold uppercase tracking-[0.16em] text-toolia-info">
+            Avant la redirection Google
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-toolia-border-subtle text-toolia-text-secondary transition hover:bg-toolia-card-hover hover:text-toolia-text disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Fermer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <GmailOAuthExplanationContent />
+        <GmailOAuthActions onContinue={onContinue} isLoading={isLoading} error={error} />
+      </div>
+    </div>
+  )
 }
 
 function ActionToggles({
@@ -3513,7 +3743,12 @@ export function GmailSetupClient() {
       showDemoNotice={allowDemoMode && demo}
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        <AppCard>
+        <GmailOAuthExplanationCard
+          onContinue={() => void connectGmail()}
+          isLoading={oauthLoading}
+          error={gmailError}
+        />
+        <AppCard className="hidden">
           <div className="flex items-start gap-4">
             <Mail className="mt-1 text-toolia-info" />
             <div>
@@ -4128,6 +4363,7 @@ export function DashboardClient() {
   const [telegramResult, setTelegramResult] = useState('')
   const [billingResult, setBillingResult] = useState('')
   const [gmailResult, setGmailResult] = useState('')
+  const [pendingGmailOAuth, setPendingGmailOAuth] = useState<{ forceConsent: boolean } | null>(null)
   const [learningResult, setLearningResult] = useState('')
   const [learningError, setLearningError] = useState('')
   const [classificationResult, setClassificationResult] = useState('')
@@ -4289,6 +4525,7 @@ export function DashboardClient() {
   const testActive = allowDemoMode && (demo || state?.status === 'active_test' || state?.subscriptionStatus === 'demo')
   const automationRunning = state?.status === 'active' || state?.status === 'active_test'
   const validSession = hasValidSession(session)
+  const isAdminUser = isAdminEmail(session?.email)
   const configuredDraftCount = profile?.categories.filter((category) => category.actions.draft).length || 0
   const draftCount = configuredDraftCount + (state?.draftTestCount || 0)
   const telegramCount = profile?.categories.filter((category) => category.actions.telegram).length || 0
@@ -4517,6 +4754,11 @@ export function DashboardClient() {
     }
   }
 
+  const requestGmailConnectFromDashboard = (forceConsent = false) => {
+    setGmailResult('')
+    setPendingGmailOAuth({ forceConsent })
+  }
+
   const connectGmailFromDashboard = async (forceConsent = false) => {
     setGmailResult('')
     setGmailBusy(true)
@@ -4730,6 +4972,7 @@ export function DashboardClient() {
 
       const response = await fetch('/api/gmail/classification/analyze-recent', {
         method: 'POST',
+        cache: 'no-store',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -4901,6 +5144,18 @@ export function DashboardClient() {
       description="Pilotez votre automatisation, vos labels, vos brouillons et vos alertes."
       showDemoNotice={allowDemoMode && testActive}
     >
+      <GmailOAuthExplanationModal
+        open={Boolean(pendingGmailOAuth)}
+        onClose={() => {
+          if (!gmailBusy) setPendingGmailOAuth(null)
+        }}
+        onContinue={() => {
+          if (pendingGmailOAuth) void connectGmailFromDashboard(pendingGmailOAuth.forceConsent)
+        }}
+        isLoading={gmailBusy}
+        error={gmailResult}
+      />
+
       {allowDemoMode && testActive && (
         <div className="rounded-card border border-toolia-info/30 bg-toolia-info/10 px-4 py-3 text-sm font-medium text-toolia-text">
           Cette configuration est inactive tant que Gmail et l’offre ne sont pas validés.
@@ -4951,7 +5206,7 @@ export function DashboardClient() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => void connectGmailFromDashboard(true)}
+                  onClick={() => requestGmailConnectFromDashboard(true)}
                   disabled={gmailBusy}
                   isLoading={gmailBusy}
                 >
@@ -4971,7 +5226,7 @@ export function DashboardClient() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => void connectGmailFromDashboard(true)}
+                  onClick={() => requestGmailConnectFromDashboard(true)}
                   disabled={gmailBusy}
                   isLoading={gmailBusy}
                 >
@@ -4984,7 +5239,7 @@ export function DashboardClient() {
               type="button"
               variant="outline"
               className="mt-auto"
-              onClick={() => void connectGmailFromDashboard(false)}
+              onClick={() => requestGmailConnectFromDashboard(false)}
               disabled={gmailBusy}
               isLoading={gmailBusy}
             >
@@ -5004,6 +5259,29 @@ export function DashboardClient() {
             <PlanUpgradeButton plan={plan} subscriptionStatus={state?.subscriptionStatus} billing={billing} />
           </div>
         </AppCard>
+        {isAdminUser && (
+          <AppCard className="flex h-full flex-col border-toolia-info/25 bg-toolia-info/10">
+            <ShieldCheck className="mb-3 text-toolia-info" />
+            <h2 className="text-xl font-bold text-toolia-text">Administration</h2>
+            <p className="mt-3 text-sm text-toolia-text-secondary">
+              Accéder aux diagnostics, finances et outils internes.
+            </p>
+            <div className="mt-auto flex flex-col gap-2 pt-4 sm:flex-row">
+              <Link
+                href="/admin/finance"
+                className="inline-flex flex-1 items-center justify-center rounded-btn bg-toolia-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-toolia-primary-light"
+              >
+                Finance
+              </Link>
+              <Link
+                href="/admin/diagnostics"
+                className="inline-flex flex-1 items-center justify-center rounded-btn border border-toolia-border-subtle px-4 py-3 text-sm font-semibold text-toolia-text transition hover:border-toolia-primary/50 hover:bg-toolia-card-hover"
+              >
+                Diagnostics
+              </Link>
+            </div>
+          </AppCard>
+        )}
         <AppCard className="flex h-full flex-col">
           {automationRunning ? <Play className="mb-3 text-toolia-success" /> : <Pause className="mb-3 text-toolia-warning" />}
           <h2 className="text-xl font-bold text-toolia-text">Automatisation</h2>
@@ -5188,7 +5466,7 @@ export function DashboardClient() {
             </p>
           </div>
           {gmailNeedsModifyScope && (
-            <Button type="button" variant="outline" onClick={() => void connectGmailFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
+            <Button type="button" variant="outline" onClick={() => requestGmailConnectFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
           )}
@@ -5265,7 +5543,7 @@ export function DashboardClient() {
             </p>
           </div>
           {gmailNeedsModifyScope && (
-            <Button type="button" variant="outline" onClick={() => void connectGmailFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
+            <Button type="button" variant="outline" onClick={() => requestGmailConnectFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
           )}
@@ -5340,7 +5618,7 @@ export function DashboardClient() {
             </p>
           </div>
           {gmailNeedsModifyScope && (
-            <Button type="button" variant="outline" onClick={() => void connectGmailFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
+            <Button type="button" variant="outline" onClick={() => requestGmailConnectFromDashboard(true)} disabled={gmailBusy} isLoading={gmailBusy}>
               Reconnecter Gmail
             </Button>
           )}

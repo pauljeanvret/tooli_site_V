@@ -17,6 +17,7 @@ import { base64UrlEncode, buildGmailDraftMime } from '@/lib/saas/gmail-draft-mim
 import { checkQuota, getMonthlyUsageSnapshot, recordUsage } from '@/lib/saas/plan-limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/admin'
 import { requirePaidSaasRouteAccess } from '@/lib/saas/route-access'
+import { estimateTokensFromChars, recordAiCostUsage } from '@/lib/ai-costs'
 
 const requestSchema = z
   .object({
@@ -217,6 +218,32 @@ export async function POST(request: NextRequest) {
       profile: profileForDraft,
       incomingEmail: body.incomingEmail,
       writingStyleProfile,
+    })
+    await recordAiCostUsage({
+      userId: user.id,
+      customerId: user.id,
+      stripeCustomerId: access.subscriptionAccess.subscription?.stripe_customer_id || null,
+      plan: access.subscriptionAccess.planId,
+      source: 'dashboard',
+      actionType: 'draft_generation',
+      provider: aiDraft.provider,
+      model: aiDraft.model,
+      promptTokens: estimateTokensFromChars(body.incomingEmail.length + 1800),
+      completionTokens: estimateTokensFromChars(aiDraft.subject.length + aiDraft.body.length),
+      metadata: {
+        route: 'gmail_drafts_create_ai_test',
+        test_draft: true,
+        addressing_mode: aiDraft.addressingMode,
+        selected_tone: aiDraft.selectedTone,
+        has_custom_instructions: Boolean(profileForDraft.global_settings.custom_draft_instructions?.trim()),
+      },
+      success: true,
+    }).catch((costError) => {
+      console.warn('[gmail/drafts/create-ai-test] AI cost logging failed', {
+        message: costError instanceof Error ? costError.message : String(costError),
+        provider: aiDraft.provider,
+        model: aiDraft.model,
+      })
     })
     draftDebug = {
       ...draftDebug,

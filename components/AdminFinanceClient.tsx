@@ -32,9 +32,12 @@ type FinanceCustomer = {
   stripeDiscountEur: number
   stripeRefundedEur: number
   aiCostEur: number
+  aiCostExactEur: number
   profitEur: number
   marginPercent: number | null
   aiCalls: number
+  aiEventsCount: number
+  aiJoinKey: string
   promptTokens: number
   completionTokens: number
   totalTokens: number
@@ -63,6 +66,7 @@ type FinancePayload = {
   ok?: boolean
   message?: string
   monthKey?: string
+  generatedAt?: string
   revenueMode?: string
   summary?: {
     activeCustomers: number
@@ -81,6 +85,11 @@ type FinancePayload = {
     estimatedProfitEur: number
     averageAiCostPerActiveCustomerEur: number
     aiCalls: number
+    aiUsageEventsLoaded: number
+    aiUsageEventsCounted: number
+    aiUsageEventsMatched: number
+    aiUsageEventsUnmatched: number
+    latestAiEventAt: string | null
     latestAiUsageAt: string | null
     totalTokens: number
     gmailMessageCount: number
@@ -100,8 +109,13 @@ type FinancePayload = {
     aiCostPricingMessage: string | null
     aiCostPricingEnvVars: string[]
     zeroCostEventsWithTokens: number
-    ignoredOtherEvents: number
+    nonPlaceholderOtherEvents: number
     ignoredZeroPlaceholderEvents: number
+    aiUsageEventsLoaded: number
+    aiUsageEventsCounted: number
+    aiUsageEventsMatched: number
+    aiUsageEventsUnmatched: number
+    latestAiEventAt: string | null
     customersMissingExactStripeRevenue: number
     customersWithRefundedStripeRevenue: number
     fullyRefundedPaymentsDetected: number
@@ -115,8 +129,10 @@ type StripeSyncPayload = {
   ok?: boolean
   message?: string
   monthKey?: string
+  adminAuthOk?: boolean
   subscriptionsScanned?: number
   subscriptionsMissingStripeCustomerId?: number
+  subscriptionsWithStripeCustomerId?: number
   customersChecked?: number
   invoicesFetched?: number
   checkoutSessionsFetched?: number
@@ -125,6 +141,17 @@ type StripeSyncPayload = {
   fullyRefundedPaymentsDetected?: number
   zeroPaidInvoicesDetected?: number
   rowsUpdatedDueToRefunds?: number
+  subscriptionsChecked?: number
+  subscriptionsUpdated?: number
+  subscriptionsActive?: number
+  subscriptionsTrialing?: number
+  subscriptionsCanceled?: number
+  subscriptionsPaused?: number
+  subscriptionsPastDue?: number
+  subscriptionsIncomplete?: number
+  subscriptionsUnpaid?: number
+  subscriptionsUnknown?: number
+  subscriptionsFailed?: number
   revenueEventsSaved?: number
   tableMissing?: boolean
   code?: string
@@ -142,7 +169,11 @@ const statusOptions = [
   { value: 'active', label: 'Actifs' },
   { value: 'trialing', label: 'Trialing' },
   { value: 'past_due', label: 'Past due' },
+  { value: 'paused', label: 'En pause Stripe' },
+  { value: 'incomplete', label: 'Incomplets' },
+  { value: 'unpaid', label: 'Impayes' },
   { value: 'canceled', label: 'Annulés' },
+  { value: 'unknown', label: 'Statut inconnu' },
   { value: 'missing', label: 'Sans abonnement' },
 ]
 
@@ -229,11 +260,13 @@ export function AdminFinanceClient() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [isSyncingStripe, setIsSyncingStripe] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [errorRequiresLogin, setErrorRequiresLogin] = React.useState(false)
   const [syncMessage, setSyncMessage] = React.useState('')
 
   const loadFinance = React.useCallback(async () => {
     setIsLoading(true)
     setError('')
+    setErrorRequiresLogin(false)
 
     const supabase = getSupabaseBrowserClient()
     const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
@@ -241,19 +274,23 @@ export function AdminFinanceClient() {
 
     if (!token) {
       setError('Connectez-vous avec un compte admin pour accéder à la finance.')
+      setErrorRequiresLogin(true)
       setPayload(null)
       setIsLoading(false)
       return
     }
 
-    const params = new URLSearchParams({ month, plan, status, sort })
+    const params = new URLSearchParams({ month, plan, status, sort, t: String(Date.now()) })
     const response = await fetch(`/api/admin/finance?${params.toString()}`, {
+      cache: 'no-store',
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => null)
     const nextPayload = (await response?.json().catch(() => null)) as FinancePayload | null
 
     if (!response?.ok || !nextPayload?.ok) {
-      setError(nextPayload?.message || 'Impossible de charger la finance.')
+      const status = response?.status || 0
+      setErrorRequiresLogin(status === 401)
+      setError(nextPayload?.message || `Impossible de charger la finance${status ? ` (HTTP ${status})` : ''}.`)
       setPayload(null)
       setIsLoading(false)
       return
@@ -270,6 +307,7 @@ export function AdminFinanceClient() {
   async function syncStripeRevenue() {
     setIsSyncingStripe(true)
     setError('')
+    setErrorRequiresLogin(false)
     setSyncMessage('')
 
     const supabase = getSupabaseBrowserClient()
@@ -278,12 +316,14 @@ export function AdminFinanceClient() {
 
     if (!token) {
       setError('Connectez-vous avec un compte admin pour synchroniser Stripe.')
+      setErrorRequiresLogin(true)
       setIsSyncingStripe(false)
       return
     }
 
     const response = await fetch('/api/admin/finance/sync-stripe', {
       method: 'POST',
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -293,15 +333,21 @@ export function AdminFinanceClient() {
     const syncPayload = (await response?.json().catch(() => null)) as StripeSyncPayload | null
 
     if (!response?.ok || !syncPayload?.ok) {
-      setError(syncPayload?.message || 'Synchronisation Stripe impossible.')
+      const status = response?.status || 0
+      setErrorRequiresLogin(status === 401)
+      setError(syncPayload?.message || `Synchronisation Stripe impossible${status ? ` (HTTP ${status})` : ''}.`)
       setIsSyncingStripe(false)
       return
     }
 
     await loadFinance()
     setSyncMessage(
-      `${syncPayload.message || 'Synchronisation Stripe terminee.'} Clients scannes : ${
+      `${syncPayload.message || 'Synchronisation Stripe terminee.'} Auth admin : ${
+        syncPayload.adminAuthOk ? 'OK' : 'non confirmee'
+      }. Clients scannes : ${
         syncPayload.customersChecked ?? 0
+      }. Clients Stripe valides : ${
+        syncPayload.subscriptionsWithStripeCustomerId ?? syncPayload.customersChecked ?? 0
       }. Factures importees : ${syncPayload.invoicesFetched ?? 0}. Sessions importees : ${
         syncPayload.checkoutSessionsFetched ?? 0
       }. Charges inspectees : ${syncPayload.chargesFetched ?? 0}. Remboursements trouves : ${
@@ -310,7 +356,19 @@ export function AdminFinanceClient() {
         syncPayload.fullyRefundedPaymentsDetected ?? 0
       }. Factures a 0 EUR : ${syncPayload.zeroPaidInvoicesDetected ?? 0}. Lignes mises a jour apres remboursement : ${
         syncPayload.rowsUpdatedDueToRefunds ?? 0
-      }. Lignes exactes enregistrees : ${syncPayload.revenueEventsSaved ?? 0}.`,
+      }. Lignes exactes enregistrees : ${syncPayload.revenueEventsSaved ?? 0}. Abonnements verifies : ${
+        syncPayload.subscriptionsChecked ?? 0
+      }. Abonnements mis a jour : ${syncPayload.subscriptionsUpdated ?? 0}. Statuts Stripe : active ${
+        syncPayload.subscriptionsActive ?? 0
+      }, trialing ${syncPayload.subscriptionsTrialing ?? 0}, canceled ${
+        syncPayload.subscriptionsCanceled ?? 0
+      }, paused ${syncPayload.subscriptionsPaused ?? 0}, past_due ${
+        syncPayload.subscriptionsPastDue ?? 0
+      }, incomplete ${syncPayload.subscriptionsIncomplete ?? 0}, unpaid ${
+        syncPayload.subscriptionsUnpaid ?? 0
+      }, unknown ${syncPayload.subscriptionsUnknown ?? 0}, ecriture echouee ${
+        syncPayload.subscriptionsFailed ?? 0
+      }.`,
     )
     setIsSyncingStripe(false)
   }
@@ -398,9 +456,11 @@ export function AdminFinanceClient() {
               <ShieldAlert className="h-4 w-4" />
               {error}
             </div>
-            <Link href="/login" className="mt-2 inline-block underline">
-              Se connecter
-            </Link>
+            {errorRequiresLogin ? (
+              <Link href={`/login?next=${encodeURIComponent('/admin/finance')}`} className="mt-2 inline-block underline">
+                Se connecter
+              </Link>
+            ) : null}
           </div>
         ) : null}
 
@@ -450,6 +510,16 @@ export function AdminFinanceClient() {
           </div>
         ) : null}
 
+        {summary ? (
+          <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-xs font-semibold text-blue-900 dark:border-blue-300/15 dark:bg-blue-300/10 dark:text-blue-100">
+            Evenements IA charges : {formatNumber(summary.aiUsageEventsLoaded || 0)} - comptes :{' '}
+            {formatNumber(summary.aiUsageEventsCounted || 0)} - rattaches :{' '}
+            {formatNumber(summary.aiUsageEventsMatched || 0)} - non rattaches :{' '}
+            {formatNumber(summary.aiUsageEventsUnmatched || 0)} - dernier evenement :{' '}
+            {formatDate(summary.latestAiEventAt || null)}
+          </div>
+        ) : null}
+
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {[
             { label: 'Revenu Stripe net', value: summary ? formatEuro(summary.estimatedRevenueEur) : '...', icon: EuroIcon },
@@ -475,6 +545,7 @@ export function AdminFinanceClient() {
           Revenu Stripe net exact pour {summary?.customersWithExactStripeRevenue || 0} client(s). Les clients sans paiement exact ce mois ne sont pas inclus dans le revenu reel ; leur MRR theorique reste affiche separement.
           <span className="mt-1 block text-xs text-slate-500 dark:text-white/45">
             Appels IA ce mois : {formatNumber(summary?.aiCalls || 0)} · Dernier usage IA : {formatDate(summary?.latestAiUsageAt || null)}
+            {' '}· Requete finance : {formatDate(payload?.generatedAt || null)}
           </span>
         </div>
 
@@ -540,10 +611,12 @@ export function AdminFinanceClient() {
                           <h3 className="text-sm font-extrabold text-slate-950 dark:text-white">Usage IA</h3>
                           <dl className="mt-3 grid gap-2 text-sm">
                             <Detail label="Appels IA" value={formatNumber(customer.aiCalls)} />
+                            <Detail label="Evenements rattaches" value={formatNumber(customer.aiEventsCount || 0)} />
+                            <Detail label="Cle IA" value={customer.aiJoinKey || 'none'} />
                             <Detail label="Emails concernés" value={formatNumber(customer.gmailMessageCount)} />
                             <Detail label="Tokens estimés" value={formatNumber(customer.totalTokens)} />
                             <Detail label="Coût affiché" value={formatEuroSmart(customer.aiCostEur)} />
-                            <Detail label="Coût exact" value={formatEuroExact(customer.aiCostEur)} />
+                            <Detail label="Coût exact" value={formatEuroExact(customer.aiCostExactEur ?? customer.aiCostEur)} />
                             <Detail label="Dernier usage" value={formatDate(customer.lastAiUsageAt)} />
                           </dl>
                         </div>

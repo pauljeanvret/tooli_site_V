@@ -158,6 +158,8 @@ function payloadForUpdate<T extends Record<string, unknown>>(payload: T) {
     'user_id',
     'customer_email',
     'plan',
+    'amount_due_cents',
+    'amount_discount_cents',
     'period_start',
     'period_end',
   ]
@@ -240,6 +242,79 @@ async function findExistingRevenueEvent(input: {
   return null
 }
 
+async function findLikelyRefundTarget(input: {
+  stripeCustomerId?: string | null
+  amountPaidCents: number
+  amountRefundedCents: number
+  stripeCreatedAt?: string | null
+}) {
+  if (!input.stripeCustomerId || input.amountPaidCents <= 0 || input.amountRefundedCents <= 0) return null
+
+  const supabase = getSupabaseAdminClient()
+  if (!supabase) return null
+
+  let query = supabase
+    .from('stripe_revenue_events')
+    .select('id,stripe_invoice_id,stripe_checkout_session_id,stripe_created_at,created_at')
+    .eq('stripe_customer_id', input.stripeCustomerId)
+    .eq('amount_paid_cents', input.amountPaidCents)
+    .gt('net_revenue_cents', 0)
+    .order('stripe_created_at', { ascending: false, nullsFirst: false })
+    .limit(10)
+
+  if (input.stripeCreatedAt) {
+    const createdAt = Date.parse(input.stripeCreatedAt)
+    if (Number.isFinite(createdAt)) {
+      const start = new Date(createdAt - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const end = new Date(createdAt + 7 * 24 * 60 * 60 * 1000).toISOString()
+      query = query.gte('stripe_created_at', start).lte('stripe_created_at', end)
+    }
+  }
+
+  const { data, error } = await query
+  if (error) {
+    if (isMissingRelationError(error)) return null
+    throw error
+  }
+
+  const candidates = data || []
+  if (candidates.length === 1) return candidates[0].id as string
+
+  const invoiceOrSessionCandidates = candidates.filter((row) => row.stripe_invoice_id || row.stripe_checkout_session_id)
+  if (invoiceOrSessionCandidates.length === 1) return invoiceOrSessionCandidates[0].id as string
+
+  if (input.stripeCreatedAt && candidates.length > 1) {
+    const referenceTime = Date.parse(input.stripeCreatedAt)
+    if (Number.isFinite(referenceTime)) {
+      const ranked = candidates
+        .map((row) => {
+          const rawDate = row.stripe_created_at || row.created_at
+          const rowTime = rawDate ? Date.parse(rawDate) : Number.NaN
+          return {
+            id: row.id as string,
+            distance: Number.isFinite(rowTime) ? Math.abs(rowTime - referenceTime) : Number.POSITIVE_INFINITY,
+          }
+        })
+        .filter((row) => Number.isFinite(row.distance))
+        .sort((a, b) => a.distance - b.distance)
+
+      if (ranked.length > 0 && (ranked.length === 1 || ranked[0].distance < ranked[1].distance)) {
+        return ranked[0].id
+      }
+    }
+  }
+
+  if (process.env.NODE_ENV !== 'production' && candidates.length > 1) {
+    console.warn('[stripe-revenue] skipped ambiguous refund target match', {
+      stripeCustomerId: input.stripeCustomerId,
+      amountPaidCents: input.amountPaidCents,
+      candidateCount: candidates.length,
+    })
+  }
+
+  return null
+}
+
 export async function upsertStripeRevenueEvent(input: RevenueEventInput) {
   const supabase = getSupabaseAdminClient()
   if (!supabase) return { ok: false, skipped: true, message: 'Supabase admin unavailable' }
@@ -280,13 +355,25 @@ export async function upsertStripeRevenueEvent(input: RevenueEventInput) {
     metadata: sanitizeMetadata(input.metadata),
   }
 
-  const existingId = await findExistingRevenueEvent({
-    stripeInvoiceId: payload.stripe_invoice_id,
-    stripeCheckoutSessionId: payload.stripe_checkout_session_id,
-    stripePaymentIntentId: payload.stripe_payment_intent_id,
-    stripeChargeId: payload.stripe_charge_id,
-    stripeEventId: payload.stripe_event_id,
-  })
+  const shouldPreferRefundTarget = amountRefundedCents > 0 && amountPaidCents > 0
+  let existingId = shouldPreferRefundTarget
+    ? await findLikelyRefundTarget({
+      stripeCustomerId: payload.stripe_customer_id,
+      amountPaidCents,
+      amountRefundedCents,
+      stripeCreatedAt: payload.stripe_created_at,
+    })
+    : null
+
+  if (!existingId) {
+    existingId = await findExistingRevenueEvent({
+      stripeInvoiceId: payload.stripe_invoice_id,
+      stripeCheckoutSessionId: payload.stripe_checkout_session_id,
+      stripePaymentIntentId: payload.stripe_payment_intent_id,
+      stripeChargeId: payload.stripe_charge_id,
+      stripeEventId: payload.stripe_event_id,
+    })
+  }
 
   const request = existingId
     ? supabase.from('stripe_revenue_events').update(payloadForUpdate(payload)).eq('id', existingId).select('id').single()
