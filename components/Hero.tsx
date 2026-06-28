@@ -91,8 +91,9 @@ export const Hero: React.FC = () => {
         <source src="/videos/hero-desk.mp4" type="video/mp4" />
       </video>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-white/38 via-white/18 to-white/62 dark:from-[#030712]/72 dark:via-[#06101f]/58 dark:to-[#030712]/84" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.28),rgba(255,255,255,0.1)_42%,transparent_68%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.42),rgba(3,7,18,0.24)_46%,transparent_72%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.82)_0%,rgba(6,16,31,0.68)_36%,rgba(6,16,31,0.74)_68%,rgba(2,6,23,0.9)_100%)] sm:hidden" />
+      <div className="absolute inset-0 hidden bg-gradient-to-b from-white/38 via-white/18 to-white/62 dark:from-[#030712]/72 dark:via-[#06101f]/58 dark:to-[#030712]/84 sm:block" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(2,6,23,0.36),rgba(2,6,23,0.18)_44%,transparent_72%)] sm:bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.28),rgba(255,255,255,0.1)_42%,transparent_68%)] sm:dark:bg-[radial-gradient(ellipse_at_center,rgba(3,7,18,0.42),rgba(3,7,18,0.24)_46%,transparent_72%)]" />
       <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-toolia-bg-main via-toolia-bg-main/60 to-transparent sm:h-40" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col items-center justify-center px-5 pb-32 pt-12 text-center sm:px-6 sm:py-16 md:px-8 lg:px-10">
@@ -103,7 +104,7 @@ export const Hero: React.FC = () => {
           variants={heroGroup}
         >
           <motion.h1
-            className="font-heading mx-auto max-w-[22rem] text-center text-[clamp(3.2rem,14vw,5.4rem)] font-extrabold leading-[0.9] tracking-[-0.055em] text-slate-950 drop-shadow-[0_1px_18px_rgba(255,255,255,0.34)] [text-wrap:balance] dark:text-white dark:drop-shadow-[0_8px_34px_rgba(0,0,0,0.58)] sm:max-w-[1100px] sm:text-[clamp(4rem,10vw,9.5rem)]"
+            className="font-heading mx-auto max-w-[21rem] text-center text-[clamp(2.85rem,12.2vw,4.35rem)] font-extrabold leading-[0.9] tracking-[-0.055em] text-white drop-shadow-[0_10px_36px_rgba(0,0,0,0.7)] [text-wrap:balance] sm:max-w-[1100px] sm:text-[clamp(4rem,10vw,9.5rem)] sm:text-slate-950 sm:drop-shadow-[0_1px_18px_rgba(255,255,255,0.34)] sm:dark:text-white sm:dark:drop-shadow-[0_8px_34px_rgba(0,0,0,0.58)]"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -112,13 +113,13 @@ export const Hero: React.FC = () => {
           </motion.h1>
 
           <motion.div
-            className="mt-4 h-[3px] w-24 rounded-full bg-toolia-primary/70 shadow-[0_0_24px_rgba(31,42,77,0.26)] dark:bg-white/60 dark:shadow-[0_0_24px_rgba(147,197,253,0.32)] sm:mt-5 sm:w-28"
+            className="mt-4 h-[3px] w-24 rounded-full bg-white/80 shadow-[0_0_26px_rgba(255,255,255,0.36)] sm:mt-5 sm:w-28 sm:bg-toolia-primary/70 sm:shadow-[0_0_24px_rgba(31,42,77,0.26)] sm:dark:bg-white/60 sm:dark:shadow-[0_0_24px_rgba(147,197,253,0.32)]"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           />
 
           <motion.p
-            className="mt-4 max-w-[22rem] text-base leading-7 text-slate-800 drop-shadow-[0_2px_12px_rgba(255,255,255,0.4)] dark:text-white/95 dark:drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)] sm:mt-5 sm:max-w-3xl sm:text-[clamp(1.1rem,1.45vw,1.55rem)] sm:leading-relaxed sm:text-slate-700 sm:dark:text-white/[0.88]"
+            className="mt-4 max-w-[21rem] text-base font-semibold leading-7 text-white/95 drop-shadow-[0_4px_24px_rgba(0,0,0,0.72)] sm:mt-5 sm:max-w-3xl sm:text-[clamp(1.1rem,1.45vw,1.55rem)] sm:font-normal sm:leading-relaxed sm:text-slate-700 sm:drop-shadow-[0_2px_12px_rgba(255,255,255,0.4)] sm:dark:text-white/[0.88] sm:dark:drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)]"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
@@ -140,7 +141,7 @@ export const Hero: React.FC = () => {
                 })
                 window.location.href = '/diagnostic'
               }}
-              className="w-full bg-[#172554] shadow-[0_22px_60px_rgba(29,78,216,0.34)] ring-1 ring-white/65 hover:bg-[#1d4ed8] hover:shadow-[0_26px_70px_rgba(29,78,216,0.42)] dark:bg-blue-500 dark:text-white dark:ring-white/20 dark:hover:bg-blue-400 sm:w-auto"
+              className="min-h-[4.15rem] w-full border border-white/70 bg-[#172554] text-lg font-extrabold shadow-[0_24px_68px_rgba(15,23,42,0.42)] ring-1 ring-white/70 hover:bg-[#1d4ed8] hover:shadow-[0_26px_70px_rgba(29,78,216,0.42)] dark:bg-[#172554] dark:text-white dark:ring-white/30 dark:hover:bg-[#1d4ed8] sm:min-h-0 sm:w-auto sm:border-0 sm:text-base sm:font-bold sm:shadow-[0_22px_60px_rgba(29,78,216,0.34)] sm:dark:bg-blue-500 sm:dark:ring-white/20 sm:dark:hover:bg-blue-400"
             >
               Diagnostiquer ma boîte mail
             </Button>
@@ -154,7 +155,7 @@ export const Hero: React.FC = () => {
                 })
                 void routeToTooliaStart()
               }}
-              className="w-full border-white/70 bg-white/[0.78] text-slate-950 shadow-[0_14px_36px_rgba(15,23,42,0.12)] backdrop-blur-md hover:bg-white hover:shadow-[0_16px_42px_rgba(15,23,42,0.16)] sm:w-auto dark:border-white/25 dark:bg-slate-950/38 dark:text-white dark:hover:bg-slate-900/58"
+              className="min-h-[3.45rem] w-full border-white/50 bg-white/[0.9] py-3 text-base font-semibold text-slate-950 shadow-[0_14px_36px_rgba(15,23,42,0.18)] hover:bg-white hover:shadow-[0_16px_42px_rgba(15,23,42,0.18)] dark:border-white/50 dark:bg-white/[0.9] dark:text-slate-950 dark:hover:bg-white sm:min-h-0 sm:w-auto sm:border-white/70 sm:bg-white/[0.78] sm:py-4 sm:shadow-[0_14px_36px_rgba(15,23,42,0.12)] sm:backdrop-blur-md sm:dark:border-white/25 sm:dark:bg-slate-950/38 sm:dark:text-white sm:dark:hover:bg-slate-900/58"
             >
               {secondaryCta}
             </Button>
@@ -168,18 +169,19 @@ export const Hero: React.FC = () => {
                 })
                 handleSmoothScroll('#how')
               }}
-              className="w-full border-white/70 bg-white/[0.78] text-slate-950 shadow-[0_14px_36px_rgba(15,23,42,0.12)] backdrop-blur-md hover:bg-white hover:shadow-[0_16px_42px_rgba(15,23,42,0.16)] sm:w-auto dark:border-white/25 dark:bg-slate-950/38 dark:text-white dark:hover:bg-slate-900/58"
+              className="min-h-[3.45rem] w-full border-white/50 bg-white/[0.9] py-3 text-base font-semibold text-slate-950 shadow-[0_14px_36px_rgba(15,23,42,0.18)] hover:bg-white hover:shadow-[0_16px_42px_rgba(15,23,42,0.18)] dark:border-white/50 dark:bg-white/[0.9] dark:text-slate-950 dark:hover:bg-white sm:min-h-0 sm:w-auto sm:border-white/70 sm:bg-white/[0.78] sm:py-4 sm:shadow-[0_14px_36px_rgba(15,23,42,0.12)] sm:backdrop-blur-md sm:dark:border-white/25 sm:dark:bg-slate-950/38 sm:dark:text-white sm:dark:hover:bg-slate-900/58"
             >
               {copy.hero.cta2}
             </Button>
           </motion.div>
 
           <motion.p
-            className="mt-4 text-xs font-semibold text-slate-800 drop-shadow-[0_2px_10px_rgba(255,255,255,0.36)] dark:text-white/[0.85] dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.46)] sm:mt-6 sm:font-medium"
+            className="mt-4 text-xs font-bold text-white/90 drop-shadow-[0_3px_16px_rgba(0,0,0,0.66)] sm:mt-6 sm:font-medium sm:text-slate-800 sm:drop-shadow-[0_2px_10px_rgba(255,255,255,0.36)] sm:dark:text-white/[0.85] sm:dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.46)]"
             variants={heroItem}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
-            {copy.hero.subCta}
+            <span className="sm:hidden">Gratuit • 2 minutes • Aucune connexion Gmail</span>
+            <span className="hidden sm:inline">{copy.hero.subCta}</span>
           </motion.p>
         </motion.div>
       </div>
